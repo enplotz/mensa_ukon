@@ -8,5 +8,12 @@ setup(name='mensa_ukon',
       author_email='manuel.hotz@uni-konstanz.de',
       py_modules=['mensa_ukon'],
       scripts=['mensa_ukon.py'],
-      requires=['requests', 'beautifulsoup4'],
+      requires=['requests', 'beautifulsoup4', 'blessings'],
+      classifiers=[
+        'Environment :: MacOS X',
+        'Operating System :: MacOS :: MacOS X',
+        'Programming Language :: Python :: 3.5',
+        'Topic :: Information Retrieval',
+        'Topic :: Mensa Plan',
+      ]
       )
