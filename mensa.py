@@ -11,8 +11,8 @@ ENDPOINT = 'https://www.max-manager.de/daten-extern/seezeit/html/inc/ajax-php_ko
 # Some minimum headers we need to send in order to get a response
 headers = {
 						'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-						'X-Request': 'JSON',
-						'X-Requested-With': 'XMLHttpRequest',
+						# 'X-Request': 'JSON',
+						# 'X-Requested-With': 'XMLHttpRequest',
 						'Accept-Encoding': 'gzip, deflate'
 					}
 
@@ -45,7 +45,7 @@ def strip_additives(desc):
 def extract_meals(responses, output_meals):
 	all_rows = []
 	for response in responses:
-		soup = BeautifulSoup(response.text, 'html.parser')
+		soup = BeautifulSoup(response.content, 'html.parser')
 		all_rows += soup.find_all('tr')[::2]
 
 	meals = {}
