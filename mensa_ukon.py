@@ -57,17 +57,23 @@ def _print_plain(entries):
         print('{}: {}'.format(pair[0], pair[1]))
 
 
-def _normalize(k):
+def _normalize_key(k):
     return k.lower().replace(' ', '_')
 
 
 def _strip_additives(desc):
     return re.sub('\((\d+,?)+\)', '', desc)
 
+
 def _repl_emoji(text):
     for val, repl in REPLACEMENTS.items():
-        if val in text:
-            return text.replace(val, repl)
+        text = text.replace(val, repl)
+    return text
+
+
+def _normalize_whitespace(text):
+    return re.sub('  +', ' ', text)
+
 
 def _extract_meals(responses, filter_meals):
     all_rows = []
@@ -81,9 +87,9 @@ def _extract_meals(responses, filter_meals):
         cols = row.cssselect('td')
         if len(cols) == 2:
             m = cols[0].text.strip()
-            nm = _normalize(m)
-            if not filter_meals or nm in (_normalize(meal) for meal in filter_meals):
-                meals[nm] = (m, (_repl_emoji(_strip_additives(cols[1].text.strip()))))
+            nm = _normalize_key(m)
+            if not filter_meals or nm in (_normalize_key(meal) for meal in filter_meals):
+                meals[nm] = (m, _repl_emoji(_normalize_whitespace(_strip_additives(cols[1].text.strip()))))
     return meals
 
 
