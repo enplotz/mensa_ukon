@@ -8,7 +8,7 @@ setup(name='mensa_ukon',
       author_email='manuel.hotz@uni-konstanz.de',
       py_modules=['mensa_ukon'],
       scripts=['mensa_ukon.py'],
-      requires=['requests', 'lxml'],
+      requires=['requests', 'lxml', 'cssselect'],
       classifiers=[
         'Environment :: MacOS X',
         'Operating System :: MacOS :: MacOS X',
