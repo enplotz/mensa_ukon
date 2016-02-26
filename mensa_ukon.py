@@ -8,6 +8,25 @@ from datetime import date
 import lxml.html
 import requests
 
+
+class Emoji(object):
+    """Hold the Emoji we use."""
+    COW = u'\U0001F42E'
+    PIG = u'\U0001F437'
+    FISH = u'\U0001F41F'
+    CHICKEN = u'\U0001F414'
+    CHEESE = u'\U0001F9C0'
+    SEEDLING = u'\U0001F331'
+
+REPLACEMENTS = {
+    '(R)': Emoji.COW,
+    '(Sch)': Emoji.PIG,
+    '(F)': Emoji.FISH,
+    '(G)': Emoji.CHICKEN,
+    '(Veg)': Emoji.CHEESE,
+    '(Vegan)': Emoji.SEEDLING
+}
+
 ENDPOINT = 'https://www.max-manager.de/daten-extern/seezeit/html/inc/ajax-php_konnektor.inc.php'
 
 # Some minimum headers we need to send in order to get a response
@@ -21,7 +40,6 @@ headers = {
 FORMATS = ['plain', 'json']
 LANGS = ['de', 'en']
 LOCATIONS = {'giessberg': 'mensa_giessberg', 'themenpark': 'themenpark_abendessen'}
-
 
 def _post_data(loc, lang, date):
     # The endpoint is a bit picky, and wants the parameters in exactly the right order, so that does not work:
@@ -46,6 +64,10 @@ def _normalize(k):
 def _strip_additives(desc):
     return re.sub('\((\d+,?)+\)', '', desc)
 
+def _repl_emoji(text):
+    for val, repl in REPLACEMENTS.items():
+        if val in text:
+            return text.replace(val, repl)
 
 def _extract_meals(responses, filter_meals):
     all_rows = []
@@ -61,7 +83,7 @@ def _extract_meals(responses, filter_meals):
             m = cols[0].text.strip()
             nm = _normalize(m)
             if not filter_meals or nm in (_normalize(meal) for meal in filter_meals):
-                meals[nm] = (m, _strip_additives(cols[1].text.strip()))
+                meals[nm] = (m, (_repl_emoji(_strip_additives(cols[1].text.strip()))))
     return meals
 
 
