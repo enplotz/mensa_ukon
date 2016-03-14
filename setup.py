@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='mensa_ukon',
-      version='0.1',
+      version='0.2',
       description='Access the canteen plan of the Uni Konstanz like a sane person.',
       author_email='manuel.hotz@uni-konstanz.de',
       py_modules=['mensa_ukon'],
