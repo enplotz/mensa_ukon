@@ -121,7 +121,7 @@ def get_meals(date, location=None, language='de', filter_meals=None):
     return _extract_meals(_make_requests(date, location, language), filter_meals=filter_meals)
 
 
-if __name__ == '__main__':
+def main():
 
     parser = argparse.ArgumentParser(prog='mensa_ukon.py',
                                      description='Access meal plan of Uni Konstanz like a sane person.')
@@ -143,3 +143,6 @@ if __name__ == '__main__':
         _print_formatted(meals, args.format)
     else:
         print('No meals found for day %s.' % args.date)
+
+if __name__ == '__main__':
+    main()
