@@ -4,8 +4,11 @@ Telegram bot for the canteen of the Uni Konstanz.
 
 ## Install
 
+It is recommended that you use a *virtualenv* for the bot.
+
 ```sh
-pip3 install -r requirements.txt
+mkvirtualenv -p /usr/local/bin/python3 mensa
+pip install -r mensa_bot/requirements.txt
 ```
 
 ## Configure
@@ -16,5 +19,6 @@ The bot can (and has to) be configured in the file `.env`. A sample config file 
 ## Run
 
 ```sh
-python3 bot.py
+workon mensa # to activate the virtualenv if it got deactivated
+python mensa_bot/bot.py
 ```

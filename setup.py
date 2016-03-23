@@ -10,7 +10,6 @@ setup(name='mensa_ukon',
       version='0.3',
       description='Access the canteen plan of the Uni Konstanz like a sane person.',
       author_email='manuel.hotz@uni-konstanz.de',
-      # py_modules=['mensa_ukon'],
       modules = ["mensa_ukon"],
       entry_points={
           'console_scripts': [
