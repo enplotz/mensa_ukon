@@ -135,6 +135,8 @@ def main():
     dp.addTelegramCommandHandler('start', start)
     dp.addTelegramCommandHandler('help', help)
     dp.addTelegramCommandHandler('mensa', mensa_plan)
+    # alias for autocorrected command
+    dp.addTelegramCommandHandler('Mensa', mensa_plan)
     dp.addTelegramCommandHandler('m', m_plan_keyboard)
 
     dp.addErrorHandler(error)
