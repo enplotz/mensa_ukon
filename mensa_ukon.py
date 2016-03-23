@@ -19,12 +19,12 @@ class Emoji(object):
     SEEDLING = u'\U0001F331'
 
 REPLACEMENTS = {
-    '(R)': Emoji.COW,
-    '(Sch)': Emoji.PIG,
-    '(F)': Emoji.FISH,
-    '(G)': Emoji.CHICKEN,
-    '(Veg)': Emoji.CHEESE,
-    '(Vegan)': Emoji.SEEDLING
+    re.compile('\(R\)|\(C\)|\(K\)|\(B\)') : Emoji.COW,
+    re.compile('\(Sch\)|\(P\)'): Emoji.PIG,
+    re.compile('\(F\)'): Emoji.FISH,
+    re.compile('\(G\)'): Emoji.CHICKEN,
+    re.compile('\(Veg\)'): Emoji.CHEESE,
+    re.compile('\(Vegan\)'): Emoji.SEEDLING
 }
 
 ENDPOINT = 'https://www.max-manager.de/daten-extern/seezeit/html/inc/ajax-php_konnektor.inc.php'
@@ -66,8 +66,8 @@ def _strip_additives(desc):
 
 
 def _repl_emoji(text):
-    for val, repl in REPLACEMENTS.items():
-        text = text.replace(val, repl)
+    for regex, repl in REPLACEMENTS.items():
+        text = regex.sub(repl, text)
     return text
 
 
@@ -122,7 +122,6 @@ def get_meals(date, location=None, language='de', filter_meals=None):
 
 
 def main():
-
     parser = argparse.ArgumentParser(prog='mensa_ukon.py',
                                      description='Access meal plan of Uni Konstanz like a sane person.')
     parser.add_argument('-d', '--date', dest='date', default=date.today(),
