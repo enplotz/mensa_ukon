@@ -2,12 +2,12 @@
 
 import argparse
 import json
+import logging
 import re
 from datetime import date
 
 import lxml.html
 import requests
-
 
 class Emoji(object):
     """Hold the Emoji we use."""
@@ -27,6 +27,8 @@ REPLACEMENTS = {
     re.compile('\(Vegan\)'): Emoji.SEEDLING
 }
 
+logger = logging.getLogger(__name__)
+
 ENDPOINT = 'https://www.max-manager.de/daten-extern/seezeit/html/inc/ajax-php_konnektor.inc.php'
 
 # Some minimum headers we need to send in order to get a response
@@ -39,7 +41,31 @@ headers = {
 
 FORMATS = ['plain', 'json']
 LANGS = ['de', 'en']
-LOCATIONS = {'giessberg': 'mensa_giessberg', 'themenpark': 'themenpark_abendessen'}
+
+
+class Location(object):
+
+    def __init__(self, key, nice_name, shortcut):
+        self.key = key
+        self.nice_name = nice_name
+        self.shortcut = shortcut
+
+    def __str__(self):
+        return 'Location("%s", "%s", "%s")' % (self.key, self.nice_name, self.shortcut)
+
+    def __repr__(self):
+        return self.__str__()
+
+DEFAULT_LOCATIONS = ['mensa_giessberg', 'themenpark_abendessen']
+
+LOCATIONS = [
+    Location('mensa_giessberg', 'Uni', 'giessberg'),
+    Location('themenpark_abendessen', 'Themenpart & Abendessen', 'themenpark'),
+    Location('mensa_htwg', 'HTWG', 'htwg'),
+    Location('mensa_friedrichshafen', 'Friedrichshafen', 'fn'),
+    Location('mensa_weingarten', 'Weingarten', 'weingarten'),
+    Location('mensa_ravensburg', 'Ravensburg', 'rave'),
+]
 
 def _post_data(loc, lang, date):
     # The endpoint is a bit picky, and wants the parameters in exactly the right order, so that does not work:
@@ -52,9 +78,12 @@ def _print_json(entries):
     print(json.dumps(entries))
 
 
-def _print_plain(entries):
-    for name, pair in sorted(entries.items()):
-        print('{}: {}'.format(pair[0], pair[1]))
+def _print_plain(canteens):
+    for mensa, entries in canteens:
+        print('> Mensa: %s' % mensa.nice_name)
+        for name, pair in sorted(entries.items()):
+            print('{}: {}'.format(pair[0], pair[1]))
+        print()
 
 
 def _normalize_key(k):
@@ -75,22 +104,26 @@ def _normalize_whitespace(text):
     return re.sub('  +', ' ', text)
 
 
-def _extract_meals(responses, filter_meals):
-    all_rows = []
-    for response in responses:
+def _extract_meals(data, filter_meals):
+    canteen_meals = []
+    for mensa, response in data.values():
+        logger.debug('Extracting meals from mensa %s' % mensa.key)
         doc = lxml.html.fromstring(response.text)
-        all_rows += doc.cssselect('tr')[::2]
-
-    meals = {}
-    for row in all_rows:
-        # first column in table is category, second is description
-        cols = row.cssselect('td')
-        if len(cols) == 2:
-            m = cols[0].text.strip()
-            nm = _normalize_key(m)
-            if not filter_meals or nm in (_normalize_key(meal) for meal in filter_meals):
-                meals[nm] = (m, _repl_emoji(_normalize_whitespace(_strip_additives(cols[1].text.strip()))))
-    return meals
+        rows = doc.cssselect('tr')[::2]
+        meals = {}
+        for row in rows:
+            cols = row.cssselect('td')
+            if len(cols) == 2:
+                meal_type = cols[0].text.strip()
+                norm_meal_type = _normalize_key(meal_type)
+                if not filter_meals or norm_meal_type in (_normalize_key(meal) for meal in filter_meals):
+                    meals[norm_meal_type] = (meal_type, _repl_emoji(_normalize_whitespace(_strip_additives(cols[1].text.strip()))))
+                    logger.debug(meals[norm_meal_type])
+            else:
+                logger.error('Not enough values in column for canteen %s' % mensa.key)
+        canteen_meals.append((mensa, meals))
+    logger.debug(canteen_meals)
+    return canteen_meals
 
 
 def _print_formatted(meals, format):
@@ -102,41 +135,51 @@ def _print_formatted(meals, format):
         print('Format not known: {}'.format(format))
 
 
-def _make_requests(date, loc, lang):
-    locations = LOCATIONS[loc] if loc else list(LOCATIONS.values())
-    rs = []
-    for location in locations:
-        data = _post_data(location, lang, date)
-        response = requests.post(ENDPOINT, headers=headers, data=data)
-        # tell requests, that we want our text as an utf-8 encoded string, because that's what the
-        # endpoint gives us back
-        response.encoding = 'utf-8'
-        rs.append(response)
+def _make_requests(date, locs, lang):
+    logger.debug('Requesting for locations: %s' % locs)
+
+    locations = [loc for loc in LOCATIONS if (len(locs) > 0 and loc.shortcut in locs
+                                              or (len(locs) == 0 and loc.key in DEFAULT_LOCATIONS))]
+
+    rs = {}
+    for loc in locations:
+        data = _post_data(loc.key, lang, date)
+        try:
+            response = requests.post(ENDPOINT, headers=headers, data=data)
+            # tell requests, that we want our text as an utf-8 encoded string, because that's what the
+            # endpoint gives us back
+            response.encoding = 'utf-8'
+            rs[loc.key] = (loc, response)
+        except requests.ConnectionError as e:
+            logger.error(e)
     return rs
 
 
-def get_meals(date, location=None, language='de', filter_meals=None):
-    """Gets the meals at the specified location for the specified day in the specified language.
+def get_meals(date, locations=DEFAULT_LOCATIONS, language='de', filter_meals=None):
+    """Gets the meals at the specified locations for the specified day in the specified language.
+    Returns: dictionary of canteens, with a dict of meals for each canteen
     """
-    return _extract_meals(_make_requests(date, location, language), filter_meals=filter_meals)
+    return _extract_meals(_make_requests(date, locations, language), filter_meals=filter_meals)
 
 
 def main():
-    parser = argparse.ArgumentParser(prog='mensa_ukon.py',
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+
+    parser = argparse.ArgumentParser(prog='mensa',
                                      description='Access meal plan of Uni Konstanz like a sane person.')
     parser.add_argument('-d', '--date', dest='date', default=date.today(),
                         help='date for the plan (default: today; format: Y-m-d)')
-    parser.add_argument('-l', '--location', dest='location', default=None,
-                        help='location of the mensa (unspecified: both; values: mensa_giessberg, themenpark_abendessen)')
+    parser.add_argument('-l', '--location', dest='locations', nargs='+', default=DEFAULT_LOCATIONS,
+                        help='locations of the canteens (unspecified: some default; values: mensa_giessberg, themenpark_abendessen)')
     parser.add_argument('-i', '--language', dest='language', default=LANGS[0],
                         help='language of the descriptions (de (default), en)')
     parser.add_argument('-f', '--format', dest='format', default=FORMATS[0],
                         help='output format (plain (default), json)')
-    parser.add_argument('-m', '--meals', dest='meals', action='append',
+    parser.add_argument('-m', '--meals', dest='meals', nargs='+',
                         help='meals to output (nothing specified: all meals; values: small-case meal names with space substituted with _)')
     args = parser.parse_args()
 
-    meals = get_meals(args.date, location=args.location, language=args.language, filter_meals=args.meals)
+    meals = get_meals(args.date, locations=args.locations, language=args.language, filter_meals=args.meals)
 
     if meals and len(meals) > 0:
         _print_formatted(meals, args.format)
