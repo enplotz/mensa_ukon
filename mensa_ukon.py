@@ -4,6 +4,7 @@ import argparse
 import json
 import logging
 import re
+from collections import OrderedDict
 from datetime import date
 
 import lxml.html
@@ -45,10 +46,11 @@ LANGS = ['de', 'en']
 
 class Location(object):
 
-    def __init__(self, key, nice_name, shortcut):
+    def __init__(self, key, nice_name, shortcut, order=None):
         self.key = key
         self.nice_name = nice_name
         self.shortcut = shortcut
+        self.order = order
 
     def __str__(self):
         return 'Location("%s", "%s", "%s")' % (self.key, self.nice_name, self.shortcut)
@@ -56,16 +58,21 @@ class Location(object):
     def __repr__(self):
         return self.__str__()
 
-DEFAULT_LOCATIONS = ['mensa_giessberg', 'themenpark_abendessen']
 
-LOCATIONS = [
-    Location('mensa_giessberg', 'Uni', 'giessberg'),
-    Location('themenpark_abendessen', 'Themenpart & Abendessen', 'themenpark'),
-    Location('mensa_htwg', 'HTWG', 'htwg'),
-    Location('mensa_friedrichshafen', 'Friedrichshafen', 'fn'),
-    Location('mensa_weingarten', 'Weingarten', 'weingarten'),
-    Location('mensa_ravensburg', 'Ravensburg', 'rave'),
-]
+DEFAULT_LOCATIONS = ['giessberg', 'themenpark']
+
+LOCATIONS = OrderedDict({
+    'giessberg': Location('mensa_giessberg', 'Uni', 'giessberg', {
+        'stammessen' : 0, 'wahlessen' : 1, 'vegetarisch': 2, 'beilagen': 3, 'eintopf': 4, 'al_studente': 5
+    }),
+    'themenpark': Location('themenpark_abendessen', 'Themenpart & Abendessen', 'themenpark', {
+        'wok': 2, 'grill': 0, 'bioessen': 1, 'abendessen': 3
+    }),
+    'htwg': Location('mensa_htwg', 'HTWG', 'htwg'),
+    'fn': Location('mensa_friedrichshafen', 'Friedrichshafen', 'fn'),
+    'weingarten': Location('mensa_weingarten', 'Weingarten', 'weingarten'),
+    'rave': Location('mensa_ravensburg', 'Ravensburg', 'rave'),
+})
 
 def _post_data(loc, lang, date):
     # The endpoint is a bit picky, and wants the parameters in exactly the right order, so that does not work:
@@ -106,6 +113,7 @@ def _normalize_whitespace(text):
 
 def _extract_meals(data, filter_meals):
     canteen_meals = []
+    filter_meal_keys = [_normalize_key(meal) for meal in filter_meals] if filter_meals else []
     for mensa, response in data.values():
         logger.debug('Extracting meals from mensa %s' % mensa.key)
         doc = lxml.html.fromstring(response.text)
@@ -116,9 +124,8 @@ def _extract_meals(data, filter_meals):
             if len(cols) == 2:
                 meal_type = cols[0].text.strip()
                 norm_meal_type = _normalize_key(meal_type)
-                if not filter_meals or norm_meal_type in (_normalize_key(meal) for meal in filter_meals):
+                if not filter_meals or norm_meal_type in filter_meal_keys:
                     meals[norm_meal_type] = (meal_type, _repl_emoji(_normalize_whitespace(_strip_additives(cols[1].text.strip()))))
-                    logger.debug(meals[norm_meal_type])
             else:
                 logger.error('Not enough values in column for canteen %s' % mensa.key)
         canteen_meals.append((mensa, meals))
@@ -136,11 +143,11 @@ def _print_formatted(meals, format):
 
 
 def _make_requests(date, locs, lang):
+    """ Makes requests for the given date in the given language at the specified locations (shortcodes).
+    """
+    locs = locs or DEFAULT_LOCATIONS
     logger.debug('Requesting for locations: %s' % locs)
-
-    locations = [loc for loc in LOCATIONS if (len(locs) > 0 and loc.shortcut in locs
-                                              or (len(locs) == 0 and loc.key in DEFAULT_LOCATIONS))]
-
+    locations = [LOCATIONS[k] for k in locs]
     rs = {}
     for loc in locations:
         data = _post_data(loc.key, lang, date)
@@ -155,7 +162,7 @@ def _make_requests(date, locs, lang):
     return rs
 
 
-def get_meals(date, locations=DEFAULT_LOCATIONS, language='de', filter_meals=None):
+def get_meals(date, locations=None, language='de', filter_meals=None):
     """Gets the meals at the specified locations for the specified day in the specified language.
     Returns: dictionary of canteens, with a dict of meals for each canteen
     """

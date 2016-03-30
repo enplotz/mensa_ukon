@@ -7,8 +7,9 @@ from os.path import join, dirname
 
 import yaml
 from dotenv import load_dotenv
-from mensa_ukon import get_meals
 from telegram import Updater, Emoji, ParseMode, ChatAction, ReplyKeyboardMarkup
+
+from mensa_ukon import get_meals
 
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
@@ -58,7 +59,50 @@ def m_plan_keyboard(bot, update):
     bot.sendMessage(chat_id=chat_id, text='Quick-access menu.', reply_markup=reply_markup)
 
 
-def mensa_plan(bot, update, args):
+def mensa_plan_stamm(bot, update, args):
+    _mensa_plan(bot, update, args, meal='stammessen', meal_location='giessberg')
+
+
+def mensa_plan_wahl(bot, update, args):
+    _mensa_plan(bot, update, args, meal='wahlessen', meal_location='giessberg')
+
+
+def mensa_plan_veg(bot, update, args):
+    _mensa_plan(bot, update, args, meal='vegetarisch', meal_location='giessberg')
+
+
+def mensa_plan_eintopf(bot, update, args):
+    _mensa_plan(bot, update, args, meal='eintopf', meal_location='giessberg')
+
+
+def mensa_plan_abendessen(bot, update, args):
+    _mensa_plan(bot, update, args, meal='abendessen', meal_location='themenpark')
+
+
+def mensa_plan_bio(bot, update, args):
+    _mensa_plan(bot, update, args, meal='bioessen', meal_location='themenpark')
+
+
+def mensa_plan_wok(bot, update, args):
+    _mensa_plan(bot, update, args, meal='wok', meal_location='themenpark')
+
+
+def mensa_plan_grill(bot, update, args):
+    _mensa_plan(bot, update, args, meal='grill', meal_location='themenpark')
+
+
+def mensa_plan_all(bot, update, args):
+    _mensa_plan(bot, update, args)
+
+
+def _sort_meals(order, meal_keys):
+    sorted = [None] * len(meal_keys)
+    for m in meal_keys:
+        sorted[order[m]] = m
+    return sorted
+
+
+def _mensa_plan(bot, update, args, meal=None, meal_location=None):
     # /mensa [today|tomorrow|date]
     chat_id = update.message.chat.id
     date = datetime.date.today()
@@ -74,13 +118,26 @@ def mensa_plan(bot, update, args):
                 date = datetime.datetime.strptime(date_arg, '%Y-%m-%d').date()
 
         bot.sendChatAction(chat_id=chat_id, action=ChatAction.TYPING)
-        meals = get_meals(date)
 
-        if len(meals) > 0:
-            keys = sorted(meals.keys())
+        logger.debug('Filter for: %s' % meal)
+        # [(Location, Dict)]
+        meals = get_meals(date, locations=[meal_location] if meal_location else None,
+                          filter_meals=[meal] if meal else None)
+        logger.debug('Filtered: %s' % meals)
+
+        if meal:
+            # only print the specific locations' meal
+            m = meals[0][1]
+            msg_text = '\n'.join(['%s %s:\n' % (Emoji.FORK_AND_KNIFE, date.strftime('%Y-%m-%d')),
+                     '*%s:* %s' % m[meal]])
+        elif len(meals) > 0:
             lines = ['%s Meals for %s:\n' % (Emoji.FORK_AND_KNIFE, date.strftime('%Y-%m-%d'))]
-            for k in keys:
-                lines.append('*%s:* %s' % meals[k])
+
+            # first mensa, then themenpark
+            for loc_meals in meals:
+                keys = _sort_meals(loc_meals[0].order, loc_meals[1].keys())
+                for k in keys:
+                    lines.append('*%s:* %s' % loc_meals[1][k])
             msg_text = '\n'.join(lines)
         else:
             msg_text = 'There are no meals for %s %s' % (date.strftime('%Y-%m-%d'), Emoji.LOUDLY_CRYING_FACE)
@@ -125,6 +182,18 @@ def setup_logging(default_path='logging.yaml', default_level=logging.INFO, env_k
         logging.basicConfig(level=default_level, format=default_format)
 
 
+SHORTCUTS = [
+             ('grill', mensa_plan_grill),
+             ('bio', mensa_plan_bio),
+             ('wok', mensa_plan_wok),
+             ('vegi', mensa_plan_veg),
+             ('stamm', mensa_plan_stamm),
+             ('wahl', mensa_plan_wahl),
+             ('eintopf', mensa_plan_eintopf),
+             ('abendessen', mensa_plan_abendessen),
+             ]
+
+
 def main():
     setup_logging()
 
@@ -134,10 +203,15 @@ def main():
 
     dp.addTelegramCommandHandler('start', start)
     dp.addTelegramCommandHandler('help', help)
-    dp.addTelegramCommandHandler('mensa', mensa_plan)
+    dp.addTelegramCommandHandler('mensa', mensa_plan_all)
     # alias for autocorrected command
-    dp.addTelegramCommandHandler('Mensa', mensa_plan)
+    dp.addTelegramCommandHandler('Mensa', mensa_plan_all)
     dp.addTelegramCommandHandler('m', m_plan_keyboard)
+
+    # shortcuts to direct offers
+    for cmd, f in SHORTCUTS:
+        dp.addTelegramCommandHandler(cmd, f)
+        dp.addTelegramCommandHandler(cmd.capitalize(), f)
 
     dp.addErrorHandler(error)
     dp.addUnknownTelegramCommandHandler(unknown)
