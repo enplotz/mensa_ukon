@@ -65,7 +65,7 @@ LOCATIONS = OrderedDict({
     'giessberg': Location('mensa_giessberg', 'Uni', 'giessberg', {
         'stammessen' : 0, 'wahlessen' : 1, 'vegetarisch': 2, 'beilagen': 3, 'eintopf': 4, 'al_studente': 5
     }),
-    'themenpark': Location('themenpark_abendessen', 'Themenpart & Abendessen', 'themenpark', {
+    'themenpark': Location('themenpark_abendessen', 'Themenpark & Abendessen', 'themenpark', {
         'wok': 2, 'grill': 0, 'bioessen': 1, 'abendessen': 3
     }),
     'htwg': Location('mensa_htwg', 'HTWG', 'htwg'),

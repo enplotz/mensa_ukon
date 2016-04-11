@@ -20,26 +20,37 @@ TOKEN = os.environ.get('PTB_TELEGRAM_BOT_TOKEN')
 USE_POLLING = os.environ.get('PTB_USE_POLLING', True)
 RE_DATE_FORMAT = re.compile('\d{4}-\d{2}-\d{2}')
 
-greetings = 'Hello!\n' \
+PDF_URL_THIS_WEEK = 'https://www.max-manager.de/daten-extern/seezeit/pdf/wochenplaene/mensa_giessberg/aktuell.pdf'
+PDF_URL_NEXT_WEEK = 'https://www.max-manager.de/daten-extern/seezeit/pdf/wochenplaene/mensa_giessberg/naechste-woche.pdf'
+
+COMMANDS = []
+
+greetings = 'Hello, human!\n' \
             'I am a bot to retrieve the culinary offerings of Uni Konstanz\' canteen. ' \
             'I can understand several date formats like \'today\', \'tomorrow\' and ones ' \
-            'formatted like \'YYYY-MM-DD\'.\n'
+            'formatted like \'YYYY-MM-DD\'.\n' \
+            'Please forgive me if I sometimes do not work, you see, ' \
+            'I\'m quite new and still adjusting to this world :).\n\n'
 
-help_text = '*My commands:*\n' \
-            '/help         - display help message\n' \
-            '/mensa \[<date>] - get what offerings are waiting for you at the specified date\n' \
-            '\n' \
-            'Examples:\n' \
-            '/mensa tomorrow\n' \
-            '/mensa 2016-02-24\n'
+INTRO_HELP = 'So, you need help?\n'
+
+INTRO_COMMANDS = 'Here are my *commands*:\n'
+
+def print_commands():
+    return "\n".join(map(lambda c: '/' + c[0] + ' ' + c[1], COMMANDS))
+
+EXAMPLES = ' \n\n' \
+           '*Examples:*\n' \
+           '/mensa tomorrow\n' \
+           '/mensa 2016-02-24\n'
 
 
 def start(bot, update):
     chat_id = update.message.chat.id
-    bot.sendMessage(bot.sendMessage(chat_id=chat_id,
-                                    text=greetings + '\n' + help_text,
+    bot.sendMessage(chat_id=chat_id,
+                                    text=greetings + '\n' + INTRO_COMMANDS + print_commands() + EXAMPLES,
                                     parse_mode=ParseMode.MARKDOWN,
-                                    disable_web_page_preview=True))
+                                    disable_web_page_preview=True)
 
 
 def help(bot, update):
@@ -47,7 +58,7 @@ def help(bot, update):
 
     chat_id = update.message.chat.id
     bot.sendMessage(chat_id=chat_id,
-                    text=help_text,
+                    text=INTRO_HELP + INTRO_COMMANDS + print_commands() + EXAMPLES,
                     parse_mode=ParseMode.MARKDOWN,
                     disable_web_page_preview=True)
 
@@ -101,6 +112,10 @@ def _sort_meals(order, meal_keys):
         sorted[order[m]] = m
     return sorted
 
+def week_plan(bot, update, args, this_week=True):
+    url = PDF_URL_THIS_WEEK if this_week else PDF_URL_NEXT_WEEK
+    chat_id = update.message.chat.id
+    bot.sendPhoto(chat_id=chat_id, photo='https://telegram.org/img/t_logo.png')
 
 def _mensa_plan(bot, update, args, meal=None, meal_location=None):
     # /mensa [today|tomorrow|date]
@@ -124,23 +139,24 @@ def _mensa_plan(bot, update, args, meal=None, meal_location=None):
         meals = get_meals(date, locations=[meal_location] if meal_location else None,
                           filter_meals=[meal] if meal else None)
         logger.debug('Filtered: %s' % meals)
-
+        msg_text = ''
         if meal:
             # only print the specific locations' meal
             m = meals[0][1]
-            msg_text = '\n'.join(['%s %s:\n' % (Emoji.FORK_AND_KNIFE, date.strftime('%Y-%m-%d')),
-                     '*%s:* %s' % m[meal]])
-        elif len(meals) > 0:
-            lines = ['%s Meals for %s:\n' % (Emoji.FORK_AND_KNIFE, date.strftime('%Y-%m-%d'))]
-
+            print(m)
+            msg_text = '\n'.join(['%s %s:\n' % (Emoji.FORK_AND_KNIFE, date.strftime('%Y-%m-%d')), '*%s:* %s' % m[meal]])
+        else:
             # first mensa, then themenpark
             for loc_meals in meals:
-                keys = _sort_meals(loc_meals[0].order, loc_meals[1].keys())
-                for k in keys:
-                    lines.append('*%s:* %s' % loc_meals[1][k])
-            msg_text = '\n'.join(lines)
-        else:
-            msg_text = 'There are no meals for %s %s' % (date.strftime('%Y-%m-%d'), Emoji.LOUDLY_CRYING_FACE)
+                if len(loc_meals[1]) > 0:
+                    lines = ['\n%s %s %s:\n' % (Emoji.FORK_AND_KNIFE, loc_meals[0].nice_name, date.strftime('%Y-%m-%d'))]
+
+                    keys = _sort_meals(loc_meals[0].order, loc_meals[1].keys())
+                    for k in keys:
+                        lines.append('*%s:* %s' % loc_meals[1][k])
+                    msg_text += '\n'.join(lines) + '\n'
+                else:
+                    msg_text += 'No meals found for %s at %s %s\n' % (date.strftime('%Y-%m-%d'), loc_meals[0].nice_name, Emoji.LOUDLY_CRYING_FACE)
 
         bot.sendMessage(chat_id=chat_id, text=msg_text,
                         parse_mode=ParseMode.MARKDOWN,
@@ -148,6 +164,9 @@ def _mensa_plan(bot, update, args, meal=None, meal_location=None):
     except ValueError:
         bot.sendMessage(chat_id, text='Usage: /mensa [<date>]')
 
+def addTelegramCommandHandler(dispatcher, cmd, handler, help_text):
+    COMMANDS.append((cmd, help_text))
+    dispatcher.addTelegramCommandHandler(cmd, handler)
 
 def error(bot, update, error, **kwargs):
     """ Error handling """
@@ -183,14 +202,14 @@ def setup_logging(default_path='logging.yaml', default_level=logging.INFO, env_k
 
 
 SHORTCUTS = [
-             ('grill', mensa_plan_grill),
-             ('bio', mensa_plan_bio),
-             ('wok', mensa_plan_wok),
-             ('vegi', mensa_plan_veg),
-             ('stamm', mensa_plan_stamm),
-             ('wahl', mensa_plan_wahl),
-             ('eintopf', mensa_plan_eintopf),
-             ('abendessen', mensa_plan_abendessen),
+             ('grill', mensa_plan_grill, 'show grill'),
+             ('bio', mensa_plan_bio, 'show bio'),
+             ('wok', mensa_plan_wok, 'show wok'),
+             ('vegi', mensa_plan_veg, 'show vegetarian meal'),
+             ('stamm', mensa_plan_stamm, 'show main meal'),
+             ('wahl', mensa_plan_wahl, 'show alternative meal'),
+             ('eintopf', mensa_plan_eintopf, 'show stew'),
+             ('abendessen', mensa_plan_abendessen, 'show dinner'),
              ]
 
 
@@ -202,16 +221,20 @@ def main():
     dp = updater.dispatcher
 
     dp.addTelegramCommandHandler('start', start)
-    dp.addTelegramCommandHandler('help', help)
-    dp.addTelegramCommandHandler('mensa', mensa_plan_all)
-    # alias for autocorrected command
+    addTelegramCommandHandler(dp, 'help', help, 'display help message')
+    mensa_help = '\[<date>] get what offerings are waiting for you at the specified date ' \
+                 'formatted like \'YYYY-MM-DD\'.'
+    addTelegramCommandHandler(dp, 'mensa', mensa_plan_all, mensa_help)
+        # alias for autocorrected command
     dp.addTelegramCommandHandler('Mensa', mensa_plan_all)
-    dp.addTelegramCommandHandler('m', m_plan_keyboard)
+    addTelegramCommandHandler(dp, 'm', m_plan_keyboard, 'show quick-access menu')
 
     # shortcuts to direct offers
-    for cmd, f in SHORTCUTS:
-        dp.addTelegramCommandHandler(cmd, f)
+    for cmd, f, h in SHORTCUTS:
+        addTelegramCommandHandler(dp, cmd, f, h)
         dp.addTelegramCommandHandler(cmd.capitalize(), f)
+
+    dp.addTelegramCommandHandler('week', week_plan)
 
     dp.addErrorHandler(error)
     dp.addUnknownTelegramCommandHandler(unknown)
