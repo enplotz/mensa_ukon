@@ -98,7 +98,7 @@ def _normalize_key(k):
 
 
 def _strip_additives(desc):
-    return re.sub('\((\d+,?)+\)', '', desc)
+    return re.sub('\s?\((\d+[,.]?)+\)\s?', '', desc)
 
 
 def _repl_emoji(text):
