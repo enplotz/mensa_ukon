@@ -97,18 +97,26 @@ def _normalize_key(k):
     return k.lower().replace(' ', '_')
 
 
-def _strip_additives(desc):
-    return re.sub('\s?\((\d+[,.]?)+\)\s?', '', desc)
+def _clean_text(text):
+    return __normalize_orthography(__normalize_whitespace(__strip_additives(text)))
+
+
+def __strip_additives(text):
+    return re.sub('\((\d+[,.]?)+\)', '', text)
+
+
+def __normalize_whitespace(text):
+    return re.sub('\s{2,}', ' ', text)
+
+
+def __normalize_orthography(text):
+    return re.sub('\s,', ',', text)
 
 
 def _repl_emoji(text):
     for regex, repl in REPLACEMENTS.items():
         text = regex.sub(repl, text)
     return text
-
-
-def _normalize_whitespace(text):
-    return re.sub('  +', ' ', text)
 
 
 def _extract_meals(data, filter_meals):
@@ -125,7 +133,7 @@ def _extract_meals(data, filter_meals):
                 meal_type = cols[0].text.strip()
                 norm_meal_type = _normalize_key(meal_type)
                 if not filter_meals or norm_meal_type in filter_meal_keys:
-                    meals[norm_meal_type] = (meal_type, _repl_emoji(_normalize_whitespace(_strip_additives(cols[1].text.strip()))))
+                    meals[norm_meal_type] = (meal_type, _repl_emoji(_clean_text(cols[1].text.strip())))
             else:
                 logger.error('Not enough values in column for canteen %s' % mensa.key)
         canteen_meals.append((mensa, meals))
