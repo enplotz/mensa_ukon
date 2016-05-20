@@ -3,6 +3,8 @@ import logging
 import logging.config
 import os
 import re
+from collections import \
+    OrderedDict
 from os.path import join, dirname
 
 import yaml
@@ -106,11 +108,12 @@ def mensa_plan_all(bot, update, args):
     _mensa_plan(bot, update, args)
 
 
-def _sort_meals(order, meal_keys):
-    sorted = [None] * len(meal_keys)
-    for m in meal_keys:
-        sorted[order[m]] = m
-    return sorted
+def _sort_meals(order, meals):
+    logger.debug(meals)
+    logger.debug(order)
+    ordered_meals = OrderedDict(sorted(meals.items(), key=lambda t: order[t[0]]))
+    logger.debug(ordered_meals)
+    return ordered_meals
 
 def week_plan(bot, update, args, this_week=True):
     url = PDF_URL_THIS_WEEK if this_week else PDF_URL_NEXT_WEEK
@@ -151,9 +154,9 @@ def _mensa_plan(bot, update, args, meal=None, meal_location=None):
                 if len(loc_meals[1]) > 0:
                     lines = ['\n%s %s %s:\n' % (Emoji.FORK_AND_KNIFE, loc_meals[0].nice_name, date.strftime('%Y-%m-%d'))]
 
-                    keys = _sort_meals(loc_meals[0].order, loc_meals[1].keys())
-                    for k in keys:
-                        lines.append('*%s:* %s' % loc_meals[1][k])
+                    ordered_meals = _sort_meals(loc_meals[0].order, loc_meals[1])
+                    for i in ordered_meals.items():
+                        lines.append('*%s:* %s' % i[1])
                     msg_text += '\n'.join(lines) + '\n'
                 else:
                     msg_text += 'No meals found for %s at %s %s\n' % (date.strftime('%Y-%m-%d'), loc_meals[0].nice_name, Emoji.LOUDLY_CRYING_FACE)
@@ -182,7 +185,7 @@ def unknown(bot, update):
     help(bot, update)
 
 
-def setup_logging(default_path='logging.yaml', default_level=logging.INFO, env_key='PTB_LOG_CONF',
+def setup_logging(default_path='mensa_bot/logging.yaml', default_level=logging.INFO, env_key='PTB_LOG_CONF',
                   default_format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'):
     """ Setup logging for the bot.
     :param default_path: default path for config
@@ -197,8 +200,10 @@ def setup_logging(default_path='logging.yaml', default_level=logging.INFO, env_k
         with open(path, 'rt') as f:
             config = yaml.load(f.read())
         logging.config.dictConfig(config)
+        logger.info('Using {} as logging config path.'.format(path))
     else:
         logging.basicConfig(level=default_level, format=default_format)
+        logger.info('Using default logging parameters.')
 
 
 SHORTCUTS = [
