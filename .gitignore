@@ -73,3 +73,6 @@ pip-selfcheck.json
 .idea
 
 .env
+.crt
+.pem
+.key

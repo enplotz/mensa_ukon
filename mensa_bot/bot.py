@@ -3,27 +3,24 @@ import logging
 import logging.config
 import os
 import re
+import settings
 from collections import \
     OrderedDict
-from os.path import join, dirname
 
 import yaml
-from dotenv import load_dotenv
-from telegram import Updater, Emoji, ParseMode, ChatAction, ReplyKeyboardMarkup
+from telegram import Emoji, ParseMode, ChatAction, ReplyKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 from mensa_ukon import get_meals
 
-dotenv_path = join(dirname(__file__), '.env')
-load_dotenv(dotenv_path)
-
 logger = logging.getLogger(__name__)
 
-TOKEN = os.environ.get('PTB_TELEGRAM_BOT_TOKEN')
-USE_POLLING = os.environ.get('PTB_USE_POLLING', True)
 RE_DATE_FORMAT = re.compile('\d{4}-\d{2}-\d{2}')
 
 PDF_URL_THIS_WEEK = 'https://www.max-manager.de/daten-extern/seezeit/pdf/wochenplaene/mensa_giessberg/aktuell.pdf'
 PDF_URL_NEXT_WEEK = 'https://www.max-manager.de/daten-extern/seezeit/pdf/wochenplaene/mensa_giessberg/naechste-woche.pdf'
+
+NOTIFY_CHATS = []
 
 COMMANDS = []
 
@@ -120,12 +117,12 @@ def week_plan(bot, update, args, this_week=True):
     chat_id = update.message.chat.id
     bot.sendPhoto(chat_id=chat_id, photo='https://telegram.org/img/t_logo.png')
 
-def _mensa_plan(bot, update, args, meal=None, meal_location=None):
+def _mensa_plan(bot, update, args=None, chat_id=None, meal=None, meal_location=None):
     # /mensa [today|tomorrow|date]
-    chat_id = update.message.chat.id
+    chat_id = chat_id or update.message.chat.id
     date = datetime.date.today()
     try:
-        if len(args) > 0:
+        if args and len(args) > 0:
             date_arg = args[0]
 
             if date_arg == 'today':
@@ -146,7 +143,6 @@ def _mensa_plan(bot, update, args, meal=None, meal_location=None):
         if meal:
             # only print the specific locations' meal
             m = meals[0][1]
-            print(m)
             msg_text = '\n'.join(['%s %s:\n' % (Emoji.FORK_AND_KNIFE, date.strftime('%Y-%m-%d')), '*%s:* %s' % m[meal]])
         else:
             # first mensa, then themenpark
@@ -167,9 +163,9 @@ def _mensa_plan(bot, update, args, meal=None, meal_location=None):
     except ValueError:
         bot.sendMessage(chat_id, text='Usage: /mensa [<date>]')
 
-def addTelegramCommandHandler(dispatcher, cmd, handler, help_text):
+def add_handler(dispatcher, cmd, handler, help_text, pass_args=True):
     COMMANDS.append((cmd, help_text))
-    dispatcher.addTelegramCommandHandler(cmd, handler)
+    dispatcher.add_handler(CommandHandler(cmd, handler, pass_args=pass_args))
 
 def error(bot, update, error, **kwargs):
     """ Error handling """
@@ -183,6 +179,7 @@ def error(bot, update, error, **kwargs):
 def unknown(bot, update):
     bot.sendMessage(chat_id=update.message.chat.id, text='Sorry, I do not understand that command.\n')
     help(bot, update)
+    logger.info('Recieved unknown command: {}'.format(update.message))
 
 
 def setup_logging(default_path='mensa_bot/logging.yaml', default_level=logging.INFO, env_key='PTB_LOG_CONF',
@@ -218,44 +215,68 @@ SHORTCUTS = [
              ]
 
 
+def todays_menu(bot, chat_id):
+    bot.sendMessage(chat_id=chat_id, text='Today\'s menu:')
+    _mensa_plan(bot, None, chat_id=chat_id)
+
+
 def main():
     setup_logging()
 
-    updater = Updater(TOKEN, workers=int(os.environ.get('PTB_WORKERS', 2)))
+    updater = Updater(settings.TOKEN, workers=settings.WORKERS)
 
     dp = updater.dispatcher
 
-    dp.addTelegramCommandHandler('start', start)
-    addTelegramCommandHandler(dp, 'help', help, 'display help message')
+    dp.add_handler(CommandHandler('start', start))
+    add_handler(dp, 'help', help, 'display help message', pass_args=False)
     mensa_help = '\[<date>] get what offerings are waiting for you at the specified date ' \
                  'formatted like \'YYYY-MM-DD\'.'
-    addTelegramCommandHandler(dp, 'mensa', mensa_plan_all, mensa_help)
-        # alias for autocorrected command
-    dp.addTelegramCommandHandler('Mensa', mensa_plan_all)
-    addTelegramCommandHandler(dp, 'm', m_plan_keyboard, 'show quick-access menu')
+    add_handler(dp, 'mensa', mensa_plan_all, mensa_help)
+    # alias for autocorrected command
+    dp.add_handler(CommandHandler('Mensa', mensa_plan_all, pass_args=True))
+    add_handler(dp, 'm', m_plan_keyboard, 'show quick-access menu', pass_args=False)
 
     # shortcuts to direct offers
     for cmd, f, h in SHORTCUTS:
-        addTelegramCommandHandler(dp, cmd, f, h)
-        dp.addTelegramCommandHandler(cmd.capitalize(), f)
+        add_handler(dp, cmd, f, h)
+        dp.add_handler(CommandHandler(cmd.capitalize(), f))
 
-    dp.addTelegramCommandHandler('week', week_plan)
+    dp.add_handler(CommandHandler('week', week_plan))
 
-    dp.addErrorHandler(error)
-    dp.addUnknownTelegramCommandHandler(unknown)
+    dp.add_handler(CommandHandler('todays', lambda bot, update : todays_menu(bot, chat_id=19412593)))
 
-    if USE_POLLING:
+    dp.add_error_handler(error)
+    dp.add_handler(MessageHandler([Filters.command], unknown))
+
+    q = updater.job_queue
+
+    logger.debug('Installing notifications for chats: {}'.format(settings.NOTIFY_CHATS))
+    for chat in settings.NOTIFY_CHATS:
+        q.put(lambda bot : todays_menu(bot, chat_id=chat), 20)
+
+    if settings.USE_POLLING:
         logging.info('Bot running with polling enabled.')
-        update_queue = updater.start_polling(poll_interval=1, timeout=5)
+        update_queue = updater.start_polling()
         updater.idle()
     else:
-        logging.info('Bot running with webhook.')
+        webhook_url = 'https://%s:%s/%s' % (settings.URL, settings.LISTEN_PORT, settings.TOKEN)
+        logging.info('Bot running with webhook on %s' % webhook_url)
         # You can also set the webhook yourself (via cURL) or delete it sending an empty url.
         # Note that for self-signed certificates, you also have to send the .pem certificate file
         # to the Telegram API.
-        updater.bot.setWebhook(webhook_url=os.environ.get('PTB_WEBHOOK_URL'))
-        update_queue = updater.start_webhook(os.environ.get('PTB_WEBHOOK_LISTEN_IP'),
-                                             os.environ.get('PTB_WEBHOOK_LISTEN_PORT'))
+
+        # Send the certificate and set the webhook url
+        updater.bot.setWebhook(webhook_url=webhook_url,
+                               certificate=open(settings.CERT, 'rb'))
+
+        # Actually start our bot
+        update_queue = updater.start_webhook(
+                                    listen=settings.LISTEN_IP,
+                                    port=settings.LISTEN_PORT,
+                                    url_path=settings.TOKEN,
+                                    cert=settings.CERT,
+                                    key=settings.CERT_KEY,
+                                    webhook_url=webhook_url)
 
 
 if __name__ == '__main__':
