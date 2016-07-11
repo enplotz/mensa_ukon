@@ -30,6 +30,34 @@ $ mensa -d 2016-02-22 -f plain -i en
 
 Help is available via `-h` flag.
 
-# Telegram bot
+# Telegram Bot
 
-The project also contains a bot for Telegram. Have a look in the `mensa_bot` directory.
+Telegram bot for the canteen of the Uni Konstanz.
+
+## Install
+
+It is recommended that you use a *virtualenv* for the bot.
+
+```sh
+mkvirtualenv -p /usr/local/bin/python3 mensa
+pip install -r requirements.txt && pip install -r requirements-bot.txt
+```
+
+## Configure
+
+The bot can (and has to) be configured in the file `.env`. A sample config file is provided as `.env-sample`.
+ Filling in your Telegram Bot API Token is the minimum you have to configure.
+
+## Run
+
+```sh
+workon mensa # to activate the virtualenv if it got deactivated
+python bot.py
+```
+
+# TODO
+
+- conda environment
+- check that library install is correct
+- library to PyPi?
+- subscription feature (daily meals for configured days of week)
