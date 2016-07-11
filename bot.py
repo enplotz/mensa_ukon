@@ -133,9 +133,8 @@ def add_bot_command(dispatcher, command_text, command, help, pass_args=False):
 
 def add_meal_command(dispatcher, cmd_shortcut):
     callback = CommandHandler(cmd_shortcut.command,
-                             # we need to bind the meal data to local variables of the lambda
-                             lambda bot, update, args, meal=cmd.meal, meal_location=cmd.location :
-                                    _mensa_plan(bot, update, meal, meal_location, args=args),
+                             lambda bot, update, args :
+                                    _mensa_plan(bot, update, cmd_shortcut.meal, cmd_shortcut.location, args=args),
                              pass_args=True)
     dispatcher.add_handler(callback)
 
