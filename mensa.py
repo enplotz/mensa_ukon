@@ -19,24 +19,30 @@ class Emoji(object):
     CHEESE = u'\U0001F9C0'
     SEEDLING = u'\U0001F331'
 
+KEYWORDS = ['R', 'C', 'K', 'B', 'Sch', 'P', 'F', 'G', 'Veg', 'Vegan']
+
+MEAL_TYPE_RE = re.compile('\((.+)\)')
+
 REPLACEMENTS = {
-    re.compile('\(R\)|\(C\)|\(K\)|\(B\)') : Emoji.COW,
-    re.compile('\(Sch\)|\(P\)'): Emoji.PIG,
-    re.compile('\(F\)'): Emoji.FISH,
-    re.compile('\(G\)'): Emoji.CHICKEN,
-    re.compile('\(Veg\)'): Emoji.CHEESE,
-    re.compile('\(Vegan\)'): Emoji.SEEDLING
+    re.compile('[RCKB]') : Emoji.COW,
+    re.compile('Sch|P'): Emoji.PIG,
+    re.compile('F'): Emoji.FISH,
+    re.compile('G'): Emoji.CHICKEN,
+    re.compile('Veg'): Emoji.CHEESE,
+    re.compile('Vegan'): Emoji.SEEDLING
 }
 
 logger = logging.getLogger(__name__)
 
+RE_DATE_FORMAT = re.compile('\d{4}-\d{2}-\d{2}')
+
+PDF_URL_THIS_WEEK = 'https://www.max-manager.de/daten-extern/seezeit/pdf/wochenplaene/mensa_giessberg/aktuell.pdf'
+PDF_URL_NEXT_WEEK = 'https://www.max-manager.de/daten-extern/seezeit/pdf/wochenplaene/mensa_giessberg/naechste-woche.pdf'
 ENDPOINT = 'https://www.max-manager.de/daten-extern/seezeit/html/inc/ajax-php_konnektor.inc.php'
 
 # Some minimum headers we need to send in order to get a response
 headers = {
     'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-    # 'X-Request': 'JSON',
-    # 'X-Requested-With': 'XMLHttpRequest',
     'Accept-Encoding': 'gzip, deflate'
 }
 
@@ -113,10 +119,26 @@ def __normalize_orthography(text):
     return re.sub('\s,', ',', text)
 
 
-def _repl_emoji(text):
+def _repl_all_emoji(match_object):
+    """
+    Used to replace shorthands with emoji
+    :param text: text shorthands inside parenthesis
+    :return:
+    """
+    text = match_object.group(0)
+    logger.debug('Replacing shorthand text %s' % text)
     for regex, repl in REPLACEMENTS.items():
         text = regex.sub(repl, text)
+        logger.debug(text)
+    text.replace(',', ' ')
     return text
+
+
+def _repl_emoji(text):
+    """Replaces shorthands of meal types with emojis.
+    """
+    logger.debug('Replacing text %s' % text)
+    return MEAL_TYPE_RE.sub(_repl_all_emoji, text)
 
 
 def _extract_meals(data, filter_meals):
@@ -177,7 +199,7 @@ def get_meals(date, locations=None, language='de', filter_meals=None):
     return _extract_meals(_make_requests(date, locations, language), filter_meals=filter_meals)
 
 
-def main():
+def main_cli():
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 
     parser = argparse.ArgumentParser(prog='mensa',
@@ -202,4 +224,4 @@ def main():
         print('No meals found for day %s.' % args.date)
 
 if __name__ == '__main__':
-    main()
+    main_cli()
