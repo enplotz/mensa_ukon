@@ -1,18 +1,20 @@
 # Mensa UKON
 
-Inofficial library to access the canteen plan of the Uni Konstanz. 
-It uses the endpoint that the official website's JavaScript uses, soooo...
+[![Build Status](https://travis-ci.org/enplotz/mensa_ukon.svg?branch=master)](https://travis-ci.org/enplotz/mensa_ukon)
 
-# Install
+Inofficial library to access the canteen plan of the Uni Konstanz. Currently, it uses
+ the endpoint that was used for the old canteen website, sooo beware of breaking functionality. 
+
+## Install
 
 The library depends on a couple of packages and is only tested with Python 3 (as I have no time for Python 2 stuff). 
-For convenience they are mirrored in a pip file.
+For convenience the requirements are stored in a pip `requirements.txt` and parsed by the setuptools script.
 
 ```bash
 python3 setup.py install
 ```
 
-# Usage
+## Usage
 
 The library can be used as is or through the script that gets installed.
 
@@ -28,7 +30,7 @@ Usage as a script:
 $ mensa -d 2016-02-22 -f plain -i en
 ```
 
-Help is available via `-h` flag.
+Help is available via the `-h` flag.
 
 # Telegram Bot
 
@@ -36,11 +38,12 @@ Telegram bot for the canteen of the Uni Konstanz.
 
 ## Install
 
-It is recommended that you use a *virtualenv* for the bot.
+It is recommended that you use a *virtualenv* for the bot. The bot uses the same set of dependencies as the library
+and is installed together with the core library.
 
 ```sh
 mkvirtualenv -p /usr/local/bin/python3 mensa
-pip install -r requirements.txt && pip install -r requirements-bot.txt
+python3 setup.py install
 ```
 
 ## Configure
@@ -52,12 +55,14 @@ The bot can (and has to) be configured in the file `.env`. A sample config file 
 
 ```sh
 workon mensa # to activate the virtualenv if it got deactivated
+# activate mensa # for miniconda in fish
 python bot.py
 ```
 
 # TODO
 
 - conda environment
-- check that library install is correct
 - library to PyPi?
 - subscription feature (daily meals for configured days of week)
+- more tests
+- script install for bot --> specify .env file b/c it does not get bundled and `settings.py` cannot find it then
