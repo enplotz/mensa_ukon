@@ -1,28 +1,45 @@
 #! /usr/bin/env python3
 
-import os
-from distutils.core import setup
+import sys
+from setuptools import setup, find_packages
 
-def read(fname):
-    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+def requirements():
+    rs = []
+    with open('requirements.txt') as f:
+        for i in f:
+            rs.append(i.strip())
 
-setup(name='mensa_ukon',
-      version='0.3',
-      description='Access the canteen plan of the Uni Konstanz like a sane person.',
-      author_email='manuel.hotz@uni-konstanz.de',
-      modules = ["mensa_ukon"],
-      entry_points={
-          'console_scripts': [
-              'mensa = mensa_ukon:main'
+needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
+pytest_runner = ['pytest-runner>=2.0,<3dev'] if needs_pytest else []
+
+with open('README.md', 'r') as fd:
+    setup(name='mensa-ukon',
+          version='0.1-alpha',
+          author='Manuel Hotz',
+          author_email='manuel.hotz@uni-konstanz.de',
+          description='Python library to access the canteen plan of the Uni Konstanz.',
+          long_description=fd.read(),
+          url='https://github.com/enplotz/mensa_ukon',
+          keywords='python canteen api wrapper bot',
+          packages=find_packages(exclude=['tests*']),
+          py_modules=['mensa', 'bot', 'settings'],
+          entry_points={
+              'console_scripts': [
+                  'mensa = mensa:main_cli',
+                  # 'mensa_bot = bot:main_bot', # TODO Needs external .env file location...
+              ]
+          },
+          setup_requires=[
+              # ... (other setup requirements)
+          ] + pytest_runner,
+          tests_require=['pytest'],
+          install_requires=requirements(),
+          include_package_data=True,
+          classifiers=[
+              'Environment :: MacOS X',
+              'Operating System :: MacOS :: MacOS X',
+              'Programming Language :: Python :: 3.5',
+              'Topic :: Information Retrieval',
+              'Topic :: Utility',
           ]
-      },
-      requires=['requests', 'lxml', 'cssselect'],
-      long_description=read('README.md'),
-      classifiers=[
-        'Environment :: MacOS X',
-        'Operating System :: MacOS :: MacOS X',
-        'Programming Language :: Python :: 3.5',
-        'Topic :: Information Retrieval',
-        'Topic :: Utility',
-      ]
-      )
+          )

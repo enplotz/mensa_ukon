@@ -10,6 +10,7 @@ from datetime import date
 import lxml.html
 import requests
 
+
 class Emoji(object):
     """Hold the Emoji we use."""
     COW = u'\U0001F42E'
@@ -19,18 +20,6 @@ class Emoji(object):
     CHEESE = u'\U0001F9C0'
     SEEDLING = u'\U0001F331'
 
-KEYWORDS = ['R', 'C', 'K', 'B', 'Sch', 'P', 'F', 'G', 'Veg', 'Vegan']
-
-MEAL_TYPE_RE = re.compile('\((.+)\)')
-
-REPLACEMENTS = {
-    re.compile('[RCKB]') : Emoji.COW,
-    re.compile('Sch|P'): Emoji.PIG,
-    re.compile('F'): Emoji.FISH,
-    re.compile('G'): Emoji.CHICKEN,
-    re.compile('Veg'): Emoji.CHEESE,
-    re.compile('Vegan'): Emoji.SEEDLING
-}
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +40,6 @@ LANGS = ['de', 'en']
 
 
 class Location(object):
-
     def __init__(self, key, nice_name, shortcut, order=None):
         self.key = key
         self.nice_name = nice_name
@@ -69,7 +57,7 @@ DEFAULT_LOCATIONS = ['giessberg', 'themenpark']
 
 LOCATIONS = OrderedDict({
     'giessberg': Location('mensa_giessberg', 'Uni', 'giessberg', {
-        'stammessen' : 0, 'wahlessen' : 1, 'vegetarisch': 2, 'beilagen': 3, 'eintopf': 4, 'al_studente': 5
+        'stammessen': 0, 'wahlessen': 1, 'vegetarisch': 2, 'beilagen': 3, 'eintopf': 4, 'al_studente': 5
     }),
     'themenpark': Location('themenpark_abendessen', 'Themenpark & Abendessen', 'themenpark', {
         'wok': 2, 'grill': 0, 'bioessen': 1, 'abendessen': 3
@@ -79,6 +67,7 @@ LOCATIONS = OrderedDict({
     'weingarten': Location('mensa_weingarten', 'Weingarten', 'weingarten'),
     'rave': Location('mensa_ravensburg', 'Ravensburg', 'rave'),
 })
+
 
 def _post_data(loc, lang, date):
     # The endpoint is a bit picky, and wants the parameters in exactly the right order, so that does not work:
@@ -119,26 +108,45 @@ def __normalize_orthography(text):
     return re.sub('\s,', ',', text)
 
 
+IN_PARENS = re.compile('\(([^)]*?)(?:,([^)]*?))?\)')
+# List of possible meals, comma separated.
+TOKENS = [
+    (Emoji.COW, re.compile('[RCKB]')),
+    (Emoji.PIG, re.compile('Sch|P')),
+    (Emoji.FISH, re.compile('F')),
+    (Emoji.CHICKEN, re.compile('G')),
+    (Emoji.SEEDLING, re.compile('Vegan')),
+    (Emoji.CHEESE, re.compile('Veg')),
+]
+
+
 def _repl_all_emoji(match_object):
     """
     Used to replace shorthands with emoji
     :param text: text shorthands inside parenthesis
     :return:
     """
-    text = match_object.group(0)
-    logger.debug('Replacing shorthand text %s' % text)
-    for regex, repl in REPLACEMENTS.items():
-        text = regex.sub(repl, text)
-        logger.debug(text)
-    text.replace(',', ' ')
-    return text
+    emoji = []
+    for group in match_object.groups():
+        if group:
+            for e, regex in TOKENS:
+                if regex.fullmatch(group.strip()):
+                    emoji.append(e)
+                    break
+            else:
+                # we have to put back our extracted string, which we could not
+                # match with an Emoji character
+                emoji.append(group)
+    return '(' + ", ".join(emoji) + ')'
 
 
 def _repl_emoji(text):
     """Replaces shorthands of meal types with emojis.
+    :param text: description of a meal
+    :return: description with substituted text shorthands as emoji characters
     """
     logger.debug('Replacing text %s' % text)
-    return MEAL_TYPE_RE.sub(_repl_all_emoji, text)
+    return IN_PARENS.sub(_repl_all_emoji, text)
 
 
 def _extract_meals(data, filter_meals):
@@ -200,7 +208,7 @@ def get_meals(date, locations=None, language='de', filter_meals=None):
 
 
 def main_cli():
-    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.WARNING)
 
     parser = argparse.ArgumentParser(prog='mensa',
                                      description='Access meal plan of Uni Konstanz like a sane person.')
@@ -222,6 +230,7 @@ def main_cli():
         _print_formatted(meals, args.format)
     else:
         print('No meals found for day %s.' % args.date)
+
 
 if __name__ == '__main__':
     main_cli()
