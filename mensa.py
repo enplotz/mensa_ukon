@@ -68,17 +68,17 @@ LOCATIONS = OrderedDict({
 })
 
 
-def _post_data(loc, lang, date):
+def _post_data(loc: str, lang: str, datum: date) -> str:
     # The endpoint is a bit picky, and wants the parameters in exactly the right order, so that does not work:
     # return urllib.parse.urlencode({'func': 'make_spl', 'loc' : loc, 'lang': lang, 'date': date})
     # Instead we have to build the string ourselves quickly.
-    return 'func=make_spl&loc={0}&lang={1}&date={2}'.format(loc, lang, date)
+    return 'func=make_spl&loc={0}&lang={1}&date={2}'.format(loc, lang, datum)
 
-def _print_json(entries):
+def _print_json(entries: list) -> None:
     print(json.dumps(entries))
 
 
-def _print_plain(canteens):
+def _print_plain(canteens) -> None:
     for mensa, entries in canteens:
         print('> Mensa: %s' % mensa.nice_name)
         for name, pair in sorted(entries.items()):
@@ -86,23 +86,23 @@ def _print_plain(canteens):
         print()
 
 
-def _normalize_key(k):
+def _normalize_key(k: str) -> str:
     return k.lower().replace(' ', '_')
 
 
-def _clean_text(text):
+def _clean_text(text: str) -> str:
     return __normalize_orthography(__normalize_whitespace(__strip_additives(text)))
 
 
-def __strip_additives(text):
+def __strip_additives(text: str) -> str:
     return re.sub('\((\d+[,.]?)+\)', '', text)
 
 
-def __normalize_whitespace(text):
+def __normalize_whitespace(text: str) -> str:
     return re.sub('\s{2,}', ' ', text)
 
 
-def __normalize_orthography(text):
+def __normalize_orthography(text: str) -> str:
     return re.sub('\s,', ',', text)
 
 
@@ -118,10 +118,10 @@ TOKENS = [
 ]
 
 
-def _repl_all_emoji(match_object):
+def _repl_all_emoji(match_object) -> str:
     """
     Used to replace shorthands with emoji
-    :param text: text shorthands inside parenthesis
+    :param match_object: match object from a regex match
     :return:
     """
     emoji = []
@@ -138,7 +138,7 @@ def _repl_all_emoji(match_object):
     return '(' + ", ".join(emoji) + ')'
 
 
-def _repl_emoji(text):
+def _repl_emoji(text: str) -> str:
     """Replaces shorthands of meal types with emojis.
     :param text: description of a meal
     :return: description with substituted text shorthands as emoji characters
@@ -147,7 +147,7 @@ def _repl_emoji(text):
     return IN_PARENS.sub(_repl_all_emoji, text)
 
 
-def _extract_meals(data, filter_meals):
+def _extract_meals(data, filter_meals: list) -> list:
     canteen_meals = []
     filter_meal_keys = [_normalize_key(meal) for meal in filter_meals] if filter_meals else []
     for mensa, content in data.values():
@@ -170,16 +170,16 @@ def _extract_meals(data, filter_meals):
     return canteen_meals
 
 
-def _print_formatted(meals, format):
-    if format == 'json':
+def _print_formatted(meals, fmt: str):
+    if fmt == 'json':
         _print_json(meals)
-    elif format == 'plain':
+    elif fmt == 'plain':
         _print_plain(meals)
     else:
-        print('Format not known: {}'.format(format))
+        print('Format not known: {}'.format(fmt))
 
 
-def _make_requests(date, locs, lang):
+def _make_requests(datum: date, locs: list, lang: str):
     """ Makes requests for the given date in the given language at the specified locations (shortcodes).
     """
     locs = locs or DEFAULT_LOCATIONS
@@ -188,7 +188,7 @@ def _make_requests(date, locs, lang):
     rs = {}
     # http = urllib3.PoolManager()
     for loc in locations:
-        data = _post_data(loc.key, lang, date).encode('ascii')
+        data = _post_data(loc.key, lang, datum).encode('ascii')
         try:
             req = request.Request(ENDPOINT, data=data, headers=headers, method='POST')
             with request.urlopen(req) as f:
@@ -198,11 +198,11 @@ def _make_requests(date, locs, lang):
     return rs
 
 
-def get_meals(date, locations=None, language='de', filter_meals=None):
+def get_meals(datum: date, locations=None, language='de', filter_meals=None) -> list:
     """Gets the meals at the specified locations for the specified day in the specified language.
     Returns: dictionary of canteens, with a dict of meals for each canteen
     """
-    return _extract_meals(_make_requests(date, locations, language), filter_meals=filter_meals)
+    return _extract_meals(_make_requests(datum, locations, language), filter_meals=filter_meals)
 
 
 def main_cli():

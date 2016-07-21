@@ -46,7 +46,7 @@ mkvirtualenv -p /usr/local/bin/python3 mensa
 python3 setup.py install
 ```
 
-## 🎛Configure
+## 🎛 Configure
 
 The bot can (and has to) be configured in the file `.env`. A sample config file is provided as `.env-sample`.
  Filling in your Telegram Bot API Token is the minimum you have to configure.

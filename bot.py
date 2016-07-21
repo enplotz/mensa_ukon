@@ -5,7 +5,7 @@ import os
 from collections import OrderedDict, namedtuple
 
 import yaml
-from telegram import Emoji, ParseMode, ChatAction, ReplyKeyboardMarkup
+from telegram import Emoji, ParseMode, ChatAction
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 import settings
@@ -13,8 +13,10 @@ from mensa import get_meals
 
 logger = logging.getLogger(__name__)
 
+
 class BotError(Exception):
     """Base Error class."""
+
     def __init__(self, message):
         super(BotError, self).__init__()
         self.message = message
@@ -22,10 +24,13 @@ class BotError(Exception):
     def __str__(self):
         return '{}'.format(self.message)
 
+
 class ArgumentError(BotError):
     """This object represents an Argument Error. It is raised, when the Bot is supplied with illegal arguments."""
+
     def __init__(self, argument):
         super(ArgumentError, self).__init__('Illegal arguments: {}'.format(argument))
+
 
 CMDShortcut = namedtuple('CMDShortcut', ['command', 'meal', 'location', 'short_help'])
 SHORTCUTS = [
@@ -74,7 +79,7 @@ def start(bot, update):
                     disable_web_page_preview=True)
 
 
-def help(bot, update):
+def bot_help(bot, update):
     """Prints help text"""
 
     chat_id = update.message.chat.id
@@ -83,14 +88,17 @@ def help(bot, update):
                     parse_mode=ParseMode.MARKDOWN,
                     disable_web_page_preview=True)
 
+
 # TODO custom keyboard with emoji as meals
 
 def mensa_plan_all(bot, update, args):
     _mensa_plan(bot, update, args=args)
 
+
 def _sort_meals(order, meals):
     ordered_meals = OrderedDict(sorted(meals.items(), key=lambda t: order[t[0]]))
     return ordered_meals
+
 
 def _mensa_plan(bot, update, meal=None, meal_location=None, args=None):
     # /mensa [today|tomorrow|date]
@@ -135,7 +143,7 @@ def _mensa_plan(bot, update, meal=None, meal_location=None, args=None):
                     msg_text += '\n'.join(lines) + '\n'
                 else:
                     msg_text += 'No meals found for %s at %s %s\n' % (
-                    date.strftime('%Y-%m-%d'), loc_meals[0].nice_name, Emoji.LOUDLY_CRYING_FACE)
+                        date.strftime('%Y-%m-%d'), loc_meals[0].nice_name, Emoji.LOUDLY_CRYING_FACE)
 
         bot.sendMessage(chat_id=chat_id, text=msg_text,
                         parse_mode=ParseMode.MARKDOWN,
@@ -143,31 +151,28 @@ def _mensa_plan(bot, update, meal=None, meal_location=None, args=None):
     except (ValueError, ArgumentError):
         bot.sendMessage(chat_id, text='Usage: /mensa [<date>]')
 
-def add_bot_command(dispatcher, command_text, command, help, pass_args=False):
+
+def add_bot_command(dispatcher, command_text, command, help_info, pass_args=False):
     dispatcher.add_handler(CommandHandler(command_text, command, pass_args=pass_args))
-    BOT_COMMANDS.append((command_text, help))
+    BOT_COMMANDS.append((command_text, help_info))
 
 
 def add_meal_command(dispatcher, cmd_shortcut):
     callback = CommandHandler(cmd_shortcut.command,
-                             lambda bot, update, args :
-                                    _mensa_plan(bot, update, meal=cmd_shortcut.meal, meal_location=cmd_shortcut.location, args=args),
-                             pass_args=True)
+                              lambda bot, update, args: _mensa_plan(bot, update, meal=cmd_shortcut.meal,
+                                                                    meal_location=cmd_shortcut.location, args=args),
+                              pass_args=True)
     dispatcher.add_handler(callback)
 
 
-def error(bot, update, error, **kwargs):
+def error(bot, update, err, **kwargs):
     """ Error handling """
-    try:
-        logger.error("An error (%s) occurred: %s"
-                     % (type(error), error.message))
-    except:
-        pass
+    logger.error("An error ({type}) occurred: {msg}".format(type=type(err), msg=err.message))
 
 
 def unknown(bot, update):
     bot.sendMessage(chat_id=update.message.chat.id, text='Sorry, I do not understand that command.\n')
-    help(bot, update)
+    bot_help(bot, update)
     logger.info('Recieved unknown command: {}'.format(update.message))
 
 
@@ -177,6 +182,7 @@ def setup_logging(default_path='logging.yaml', default_level=logging.INFO, env_k
     :param default_path: default path for config
     :param default_level: default level
     :param env_key: environment key used to alter config path
+    :param default_format: default format
     """
     path = default_path
     other_path = os.environ.get(env_key, None)
@@ -197,10 +203,9 @@ setup_logging()
 updater = Updater(settings.TOKEN, workers=settings.WORKERS)
 dp = updater.dispatcher
 
-
 # Custom command handlers
 add_bot_command(dp, 'start', start, 'start bot')
-add_bot_command(dp, 'help', help, 'display help message')
+add_bot_command(dp, 'help', bot_help, 'display help message')
 add_bot_command(dp, 'mensa', mensa_plan_all, DATE_HELP, pass_args=True)
 # alias for autocorrected command
 # dp.add_handler(CommandHandler('Mensa', mensa_plan_all, pass_args=True))
@@ -208,7 +213,6 @@ add_bot_command(dp, 'mensa', mensa_plan_all, DATE_HELP, pass_args=True)
 # shortcuts to direct offers
 for cmd in SHORTCUTS:
     add_meal_command(dp, cmd)
-
 
 # Again telegram bot framework code
 dp.add_error_handler(error)
