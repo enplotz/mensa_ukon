@@ -13,6 +13,20 @@ from mensa import get_meals
 
 logger = logging.getLogger(__name__)
 
+class BotError(Exception):
+    """Base Error class."""
+    def __init__(self, message):
+        super(BotError, self).__init__()
+        self.message = message
+
+    def __str__(self):
+        return '{}'.format(self.message)
+
+class ArgumentError(BotError):
+    """This object represents an Argument Error. It is raised, when the Bot is supplied with illegal arguments."""
+    def __init__(self, argument):
+        super(ArgumentError, self).__init__('Illegal arguments: {}'.format(argument))
+
 CMDShortcut = namedtuple('CMDShortcut', ['command', 'meal', 'location', 'short_help'])
 SHORTCUTS = [
     CMDShortcut('stamm', 'stammessen', 'giessberg', 'Show main meal'),
@@ -72,7 +86,7 @@ def help(bot, update):
 # TODO custom keyboard with emoji as meals
 
 def mensa_plan_all(bot, update, args):
-    _mensa_plan(bot, update, args)
+    _mensa_plan(bot, update, args=args)
 
 def _sort_meals(order, meals):
     ordered_meals = OrderedDict(sorted(meals.items(), key=lambda t: order[t[0]]))
@@ -84,15 +98,18 @@ def _mensa_plan(bot, update, meal=None, meal_location=None, args=None):
     chat_id = update.message.chat.id
     date = datetime.date.today()
     try:
-        if args and len(args) > 0:
-            date_arg = args[0]
+        if args:
+            if len(args) > 1:
+                raise ArgumentError(str(args))
+            elif len(args) == 1:
+                date_arg = args[0]
 
-            if date_arg == 'today':
-                pass
-            elif date_arg == 'tomorrow':
-                date += datetime.timedelta(days=1)
-            else:
-                date = datetime.datetime.strptime(date_arg, '%Y-%m-%d').date()
+                if date_arg == 'today':
+                    pass
+                elif date_arg == 'tomorrow':
+                    date += datetime.timedelta(days=1)
+                else:
+                    date = datetime.datetime.strptime(date_arg, '%Y-%m-%d').date()
 
         bot.sendChatAction(chat_id=chat_id, action=ChatAction.TYPING)
 
@@ -123,7 +140,7 @@ def _mensa_plan(bot, update, meal=None, meal_location=None, args=None):
         bot.sendMessage(chat_id=chat_id, text=msg_text,
                         parse_mode=ParseMode.MARKDOWN,
                         disable_web_page_preview=True)
-    except ValueError:
+    except (ValueError, ArgumentError):
         bot.sendMessage(chat_id, text='Usage: /mensa [<date>]')
 
 def add_bot_command(dispatcher, command_text, command, help, pass_args=False):
@@ -134,7 +151,7 @@ def add_bot_command(dispatcher, command_text, command, help, pass_args=False):
 def add_meal_command(dispatcher, cmd_shortcut):
     callback = CommandHandler(cmd_shortcut.command,
                              lambda bot, update, args :
-                                    _mensa_plan(bot, update, cmd_shortcut.meal, cmd_shortcut.location, args=args),
+                                    _mensa_plan(bot, update, meal=cmd_shortcut.meal, meal_location=cmd_shortcut.location, args=args),
                              pass_args=True)
     dispatcher.add_handler(callback)
 
