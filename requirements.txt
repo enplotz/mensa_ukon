@@ -3,4 +3,4 @@ python-telegram-bot==4.1.2
 PyYAML==3.11
 lxml==3.6.0
 requests==2.10.0
-cssselect=0.9.1
+cssselect==0.9.1
