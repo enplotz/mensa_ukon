@@ -8,7 +8,7 @@ from collections import OrderedDict
 from datetime import date
 
 import lxml.html
-import urllib
+import urllib.request as request, urllib.error as error
 
 class Emoji(object):
     """Hold the Emoji we use."""
@@ -190,10 +190,10 @@ def _make_requests(date, locs, lang):
     for loc in locations:
         data = _post_data(loc.key, lang, date).encode('ascii')
         try:
-            req = urllib.request.Request(ENDPOINT, data=data, headers=headers, method='POST')
-            with urllib.request.urlopen(req) as f:
+            req = request.Request(ENDPOINT, data=data, headers=headers, method='POST')
+            with request.urlopen(req) as f:
                 rs[loc.key] = (loc, f.read().decode('utf-8'))
-        except urllib.error.HTTPError as e:
+        except error.HTTPError as e:
             logger.error(e)
     return rs
 
