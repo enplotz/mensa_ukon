@@ -8,8 +8,7 @@ from collections import OrderedDict
 from datetime import date
 
 import lxml.html
-import requests
-
+import urllib
 
 class Emoji(object):
     """Hold the Emoji we use."""
@@ -74,7 +73,6 @@ def _post_data(loc, lang, date):
     # return urllib.parse.urlencode({'func': 'make_spl', 'loc' : loc, 'lang': lang, 'date': date})
     # Instead we have to build the string ourselves quickly.
     return 'func=make_spl&loc={0}&lang={1}&date={2}'.format(loc, lang, date)
-
 
 def _print_json(entries):
     print(json.dumps(entries))
@@ -152,9 +150,10 @@ def _repl_emoji(text):
 def _extract_meals(data, filter_meals):
     canteen_meals = []
     filter_meal_keys = [_normalize_key(meal) for meal in filter_meals] if filter_meals else []
-    for mensa, response in data.values():
+    for mensa, content in data.values():
         logger.debug('Extracting meals from mensa %s' % mensa.key)
-        doc = lxml.html.fromstring(response.text)
+        logger.debug('Content\n{}'.format(content))
+        doc = lxml.html.fromstring(content)
         rows = doc.cssselect('tr')[::2]
         meals = {}
         for row in rows:
@@ -187,15 +186,14 @@ def _make_requests(date, locs, lang):
     logger.debug('Requesting for locations: %s' % locs)
     locations = [LOCATIONS[k] for k in locs]
     rs = {}
+    # http = urllib3.PoolManager()
     for loc in locations:
-        data = _post_data(loc.key, lang, date)
+        data = _post_data(loc.key, lang, date).encode('ascii')
         try:
-            response = requests.post(ENDPOINT, headers=headers, data=data)
-            # tell requests, that we want our text as an utf-8 encoded string, because that's what the
-            # endpoint gives us back
-            response.encoding = 'utf-8'
-            rs[loc.key] = (loc, response)
-        except requests.ConnectionError as e:
+            req = urllib.request.Request(ENDPOINT, data=data, headers=headers, method='POST')
+            with urllib.request.urlopen(req) as f:
+                rs[loc.key] = (loc, f.read().decode('utf-8'))
+        except urllib.error.HTTPError as e:
             logger.error(e)
     return rs
 
