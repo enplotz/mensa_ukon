@@ -30,11 +30,11 @@ handlers:
         encoding: utf8
 
 loggers:
-    mensa_ukon:
+    mensa:
         level: WARN
         handlers: [console, info_file_handler, error_file_handler]
         propagate: no
-    telegram.bot:
+    telegram:
         level: WARN
 
 root:

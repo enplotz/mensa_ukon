@@ -171,7 +171,7 @@ def unknown(bot, update):
     logger.info('Recieved unknown command: {}'.format(update.message))
 
 
-def setup_logging(default_path='mensa_bot/logging.yaml', default_level=logging.INFO, env_key='PTB_LOG_CONF',
+def setup_logging(default_path='logging.yaml', default_level=logging.INFO, env_key='PTB_LOG_CONF',
                   default_format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'):
     """ Setup logging for the bot.
     :param default_path: default path for config
