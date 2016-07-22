@@ -18,6 +18,7 @@ class Emoji(object):
     CHICKEN = u'\U0001F414'
     CHEESE = u'\U0001F9C0'
     SEEDLING = u'\U0001F331'
+    SHEEP = u'\U0001F411'
 
 
 logger = logging.getLogger(__name__)
@@ -115,6 +116,7 @@ TOKENS = [
     (Emoji.CHICKEN, re.compile('G')),
     (Emoji.SEEDLING, re.compile('Vegan')),
     (Emoji.CHEESE, re.compile('Veg')),
+    (Emoji.SHEEP, re.compile('L')),
 ]
 
 
