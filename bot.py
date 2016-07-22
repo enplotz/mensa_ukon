@@ -11,7 +11,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import settings
 from mensa import get_meals
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('MensaBot')
 
 
 class BotError(Exception):
@@ -221,12 +221,12 @@ dp.add_handler(MessageHandler([Filters.command], unknown))
 q = updater.job_queue
 
 if settings.USE_POLLING:
-    logging.info('Bot running with polling enabled.')
+    logger.info('Bot running with polling enabled.')
     update_queue = updater.start_polling()
     updater.idle()
 else:
     webhook_url = 'https://%s:%s/%s' % (settings.URL, settings.LISTEN_PORT, settings.TOKEN)
-    logging.info('Bot running with webhook on %s' % webhook_url)
+    logger.info('Bot running with webhook on %s' % webhook_url)
     # You can also set the webhook yourself (via cURL) or delete it sending an empty url.
     # Note that for self-signed certificates, you also have to send the .pem certificate file
     # to the Telegram API.
