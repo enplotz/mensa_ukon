@@ -10,6 +10,9 @@ from datetime import date
 import lxml.html
 import urllib.request as request, urllib.error as error
 
+# https://lukasa.co.uk/2014/05/A_Brief_Digression_About_Logging/
+logging.getLogger(__name__).addHandler(logging.NullHandler())
+
 class Emoji(object):
     """Hold the Emoji we use."""
     COW = u'\U0001F42E'
@@ -145,7 +148,7 @@ def _repl_emoji(text: str) -> str:
     :param text: description of a meal
     :return: description with substituted text shorthands as emoji characters
     """
-    logger.debug('Replacing text %s' % text)
+    logger.debug('Replacing text %s', text)
     return IN_PARENS.sub(_repl_all_emoji, text)
 
 
@@ -153,8 +156,8 @@ def _extract_meals(data, filter_meals: list) -> list:
     canteen_meals = []
     filter_meal_keys = [_normalize_key(meal) for meal in filter_meals] if filter_meals else []
     for mensa, content in data.values():
-        logger.debug('Extracting meals from mensa %s' % mensa.key)
-        logger.debug('Content\n{}'.format(content))
+        logger.debug('Extracting meals from mensa %s', mensa.key)
+        logger.debug('Content\n%s', content)
         doc = lxml.html.fromstring(content)
         rows = doc.cssselect('tr')[::2]
         meals = {}
@@ -166,7 +169,7 @@ def _extract_meals(data, filter_meals: list) -> list:
                 if not filter_meals or norm_meal_type in filter_meal_keys:
                     meals[norm_meal_type] = (meal_type, _repl_emoji(_clean_text(cols[1].text.strip())))
             else:
-                logger.error('Not enough values in column for canteen %s' % mensa.key)
+                logger.error('Not enough values in column for canteen %s', mensa.key)
         canteen_meals.append((mensa, meals))
     logger.debug(canteen_meals)
     return canteen_meals
@@ -185,7 +188,7 @@ def _make_requests(datum: date, locs: list, lang: str):
     """ Makes requests for the given date in the given language at the specified locations (shortcodes).
     """
     locs = locs or DEFAULT_LOCATIONS
-    logger.debug('Requesting for locations: %s' % locs)
+    logger.debug('Requesting for locations: %s', locs)
     locations = [LOCATIONS[k] for k in locs]
     rs = {}
     # http = urllib3.PoolManager()

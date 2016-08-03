@@ -121,7 +121,7 @@ def _mensa_plan(bot, update, meal=None, meal_location=None, args=None):
 
         bot.sendChatAction(chat_id=chat_id, action=ChatAction.TYPING)
 
-        logger.debug('Filter for: %s' % meal)
+        logger.debug('Filter for: %s', meal)
         # [(Location, Dict)]
         meals = get_meals(date, locations=[meal_location] if meal_location else None,
                           filter_meals=[meal] if meal else None)
@@ -167,13 +167,13 @@ def add_meal_command(dispatcher, cmd_shortcut):
 
 def error(bot, update, err, **kwargs):
     """ Error handling """
-    logger.error("An error ({type}) occurred: {msg}".format(type=type(err), msg=err.message))
+    logger.error("An error (%s) occurred: %s", type(err), err.message)
 
 
 def unknown(bot, update):
     bot.sendMessage(chat_id=update.message.chat.id, text='Sorry, I do not understand that command.\n')
     bot_help(bot, update)
-    logger.info('Recieved unknown command: {}'.format(update.message))
+    logger.info('Recieved unknown command: %s', update.message)
 
 
 def setup_logging(default_path='logging.yaml', default_level=logging.INFO, env_key='PTB_LOG_CONF',
@@ -192,7 +192,7 @@ def setup_logging(default_path='logging.yaml', default_level=logging.INFO, env_k
         with open(path, 'rt') as f:
             config = yaml.load(f.read())
         logging.config.dictConfig(config)
-        logger.info('Using {} as logging config path.'.format(path))
+        logger.info('Using %s as logging config path.', path)
     else:
         logging.basicConfig(level=default_level, format=default_format)
         logger.info('Using default logging parameters.')
@@ -226,7 +226,7 @@ if settings.USE_POLLING:
     updater.idle()
 else:
     webhook_url = 'https://%s:%s/%s' % (settings.URL, settings.LISTEN_PORT, settings.TOKEN)
-    logger.info('Bot running with webhook on %s' % webhook_url)
+    logger.info('Bot running with webhook on %s', webhook_url)
     # You can also set the webhook yourself (via cURL) or delete it sending an empty url.
     # Note that for self-signed certificates, you also have to send the .pem certificate file
     # to the Telegram API.
