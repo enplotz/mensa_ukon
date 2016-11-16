@@ -153,16 +153,20 @@ def _mensa_plan(bot, update, meal=None, meal_location=None, args=None):
 
 
 def add_bot_command(dispatcher, command_text, command, help_info, pass_args=False):
-    dispatcher.add_handler(CommandHandler(command_text, command, pass_args=pass_args))
+    # the german auto-correct tends to capitalize the first word after the slash...
+    # so we will add both variants internally bot not report them in the help menu
+    for c_text in [command_text, command_text.capitalize()]:
+        dispatcher.add_handler(CommandHandler(c_text, command, pass_args=pass_args))
     BOT_COMMANDS.append((command_text, help_info))
 
 
 def add_meal_command(dispatcher, cmd_shortcut):
-    callback = CommandHandler(cmd_shortcut.command,
-                              lambda bot, update, args: _mensa_plan(bot, update, meal=cmd_shortcut.meal,
-                                                                    meal_location=cmd_shortcut.location, args=args),
-                              pass_args=True)
-    dispatcher.add_handler(callback)
+    for s in [cmd_shortcut.command, cmd_shortcut.command.capitalize()]:
+        dispatcher.add_handler(CommandHandler(s,
+                                              lambda bot, update, args: _mensa_plan(bot, update, meal=cmd_shortcut.meal,
+                                                                                    meal_location=cmd_shortcut.location,
+                                                                                    args=args),
+                                              pass_args=True))
 
 
 def error(bot, update, err, **kwargs):
@@ -216,7 +220,7 @@ for cmd in SHORTCUTS:
 
 # Again telegram bot framework code
 dp.add_error_handler(error)
-dp.add_handler(MessageHandler([Filters.command], unknown))
+dp.add_handler(MessageHandler(Filters.command, unknown))
 
 q = updater.job_queue
 
