@@ -2,6 +2,7 @@
 
 import sys
 from setuptools import setup, find_packages
+from mensa_ukon import version
 
 def requirements():
     rs = []
@@ -14,7 +15,7 @@ pytest_runner = ['pytest-runner>=2.0,<3dev'] if needs_pytest else []
 
 with open('README.md', 'r') as fd:
     setup(name='mensa-ukon',
-          version='0.1-alpha',
+          version=version.__version__,
           author='Manuel Hotz',
           author_email='manuel.hotz@uni-konstanz.de',
           description='Python library to access the canteen plan of the Uni Konstanz.',
@@ -25,7 +26,7 @@ with open('README.md', 'r') as fd:
           py_modules=['mensa', 'bot', 'settings'],
           entry_points={
               'console_scripts': [
-                  'mensa = mensa:main_cli',
+                  'mensa = mensa_ukon.mensa_cli:meals',
                   # 'mensa_bot = bot:main_bot', # TODO Needs external .env file location...
               ]
           },
