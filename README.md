@@ -2,13 +2,14 @@
 
 [![Build Status](https://travis-ci.org/enplotz/mensa_ukon.svg?branch=master)](https://travis-ci.org/enplotz/mensa_ukon)
 
-Inofficial library to access the canteen plan of the Uni Konstanz. Currently, it uses
- the endpoint that was used for the old canteen website, sooo beware of breaking functionality. 
+Inofficial library to access the canteen plan of the Uni Konstanz (and all other SZ canteens). Currently, it uses
+ the endpoint that was used for the old canteen website, sooo beware of breaking functionality.
 
 ## ⚙ Install
 
-The library depends on a couple of packages and is only tested with Python 3 (as I have no time for Python 2 stuff). 
+The library depends on a couple of packages and is only tested with Python 3 (as I have no time for Python 2 stuff).
 For convenience the requirements are stored in a pip `requirements.txt` and parsed by the setuptools script.
+So even a call with `python3 setup.py [...]` should install all dependencies.
 
 ```bash
 python3 setup.py install
@@ -19,22 +20,23 @@ python3 setup.py install
 The library can be used as is or through the script that gets installed.
 
 ```python
->>> import mensa_ukon
->>> mensa_ukon.get_meals('2016-02-22')
-{'stammessen': ... }
+>>> from mensa_ukon import Mensa
+>>> m = Mensa()
+>>> m.retrieve()
+[(Location("mensa_giessberg", "Uni", "giessberg"), {...}), (Location("themenpark_abendessen", "Themenpark & Abendessen", "themenpark"), {...})]
 ```
 
-Usage as a script:
+A script is automatically installed by setuptools:
 
 ```bash
-$ mensa -d 2016-02-22 -f plain -i en
+$ mensa
 ```
 
-Help is available via the `-h` flag.
+Help is available via the `--help` flag.
 
 # 🤖 Telegram Bot
 
-Telegram bot for the canteen of the Uni Konstanz.
+Telegram bot for the canteen of the Uni Konstanz (or all other SZ canteens).
 
 ## ⚙ Install
 
@@ -49,20 +51,23 @@ python3 setup.py install
 ## 🎛 Configure
 
 The bot can (and has to) be configured in the file `.env`. A sample config file is provided as `.env-sample`.
- Filling in your Telegram Bot API Token is the minimum you have to configure.
+Filling in your Telegram Bot API Token is the minimum you have to configure.
+Be sure that the config file is located in the working directory of the bot, i.e., the directory where you will run the bot script.
 
-## 🏃 Run 
+## 🏃 Run
 
 ```sh
 workon mensa # to activate the virtualenv if it got deactivated
 # activate mensa # for miniconda in fish
-python bot.py
+mensa_bot
 ```
 
-# 💪 TODO 
+You can see available command line arguments/options via the `--help` flag.
+
+# 💪 TODO
 
 - [ ] Conda environment
 - [ ] Library to PyPi?
 - [ ] subscription feature (daily meals for configured days of week)
-- [ ] more tests (and what are tox & nose?)
-- [ ] script install for bot --> specify .env file b/c it does not get bundled and `settings.py` cannot find it then
+- [ ] more tests (investigate what tox & nose are for)
+- [x] script install for bot --> specify .env file b/c it does not get bundled and `settings.py` cannot find it then

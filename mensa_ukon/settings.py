@@ -1,7 +1,14 @@
+#! /usr/bin/env python
+import logging
 import os
-from os.path import join, dirname
+from os.path import join
+
 from dotenv import load_dotenv
-dotenv_path = join(dirname(__file__), '.env')
+
+logger = logging.getLogger(__name__)
+
+# dotenv_path = join(dirname(__file__), '.env')
+dotenv_path = join(os.getcwd(), '.env')
 load_dotenv(dotenv_path)
 
 # General

@@ -26,8 +26,8 @@ with open('README.md', 'r') as fd:
           py_modules=['mensa', 'bot', 'settings'],
           entry_points={
               'console_scripts': [
-                  'mensa = mensa_ukon.mensa_cli:meals',
-                  # 'mensa_bot = bot:main_bot', # TODO Needs external .env file location...
+                  'mensa = scripts.mensa_cli:meals',
+                  'mensa_bot = scripts.bot:run_bot', # TODO Needs external .env file location... like in $HOME/.config/mensabot
               ]
           },
           setup_requires=[

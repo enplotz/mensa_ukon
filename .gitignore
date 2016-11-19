@@ -64,7 +64,7 @@ target/
 [Bb]in
 [Ii]nclude
 [Ll]ib
-[Ss]cripts
+[S]cripts
 pyvenv.cfg
 pip-selfcheck.json
 
@@ -76,3 +76,9 @@ pip-selfcheck.json
 .crt
 .pem
 .key
+
+# Ignore database files
+*.db
+
+# Ignore random txt files
+*.txt
