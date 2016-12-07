@@ -2,8 +2,14 @@
 
 import sys
 from setuptools import setup, find_packages
-from mensa_ukon import version
+from distutils.util import convert_path
 import codecs
+
+ns = {}
+version_path = convert_path('mensa_ukon/version.py')
+
+with codecs.open(version_path, 'r', 'utf-8') as vf:
+    exec(vf.read(), ns)
 
 def requirements():
     rs = []
@@ -16,7 +22,7 @@ pytest_runner = ['pytest-runner>=2.0,<3dev'] if needs_pytest else []
 
 with codecs.open('README.md', 'r', 'utf-8') as fd:
     setup(name='mensa-ukon',
-          version=version.__version__,
+          version=ns['__version__'],
           author='Manuel Hotz',
           author_email='manuel.hotz@uni-konstanz.de',
           description='Python library to access the canteen plan of the Uni Konstanz.',
