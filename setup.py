@@ -3,17 +3,18 @@
 import sys
 from setuptools import setup, find_packages
 from mensa_ukon import version
+import codecs
 
 def requirements():
     rs = []
-    with open('requirements.txt') as f:
+    with codecs.open('requirements.txt', 'r', 'utf-8') as f:
         for i in f:
             rs.append(i.strip())
 
 needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
 pytest_runner = ['pytest-runner>=2.0,<3dev'] if needs_pytest else []
 
-with open('README.md', 'r') as fd:
+with codecs.open('README.md', 'r', 'utf-8') as fd:
     setup(name='mensa-ukon',
           version=version.__version__,
           author='Manuel Hotz',
@@ -43,4 +44,4 @@ with open('README.md', 'r') as fd:
               'Topic :: Information Retrieval',
               'Topic :: Utility',
           ]
-          )
+    )
