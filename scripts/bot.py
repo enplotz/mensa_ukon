@@ -10,16 +10,12 @@ from mensa_ukon.mensabot import MensaBot
 
 logger = logging.getLogger('MensaBot')
 
-def _setup_logging(verbosity, default_path='logging.yaml', default_level=logging.INFO, env_key='PTB_LOG_CONF',
-                  default_format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'):
+def _setup_logging(verbosity, default_level=logging.INFO,
+                   default_format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'):
     """ Setup logging for the bot.
-    :param default_path: default path for config
     :param default_level: default level
-    :param env_key: environment key used to alter config path
     :param default_format: default format
     """
-    path = default_path
-    other_path = os.environ.get(env_key, None)
 
     if verbosity > 0:
         level = Verbosity.getLoglevelForCount(verbosity)
@@ -28,16 +24,8 @@ def _setup_logging(verbosity, default_path='logging.yaml', default_level=logging
         logger.info('Overwriting default log level from command line to {}'.format(logging.getLevelName(level)))
         # FIXME correct logging for all libraries and bot...
 
-    if other_path:
-        path = other_path
-    if os.path.exists(path):
-        with open(path, 'rt') as f:
-            config = yaml.load(f.read())
-        logging.config.dictConfig(config)
-        logger.info('Using %s as logging config path.', path)
-    else:
-        logging.basicConfig(level=default_level, format=default_format)
-        logger.info('Using default logging parameters.')
+    logging.basicConfig(level=default_level, format=default_format)
+    logger.info('Using default logging parameters.')
 
 
 @click.command()
