@@ -60,7 +60,7 @@ class Mensa(object):
             return k.lower().replace(' ', '_')
 
         def _strip_additives(text: str) -> str:
-            return re.sub('\((\d+[,.]?)+\)', '', text)
+            return re.sub('\((\s*\d+[a-z]?[,.]?\s*)+\)', '', text)
 
         def _normalize_whitespace(text: str) -> str:
             return re.sub('\s{2,}', ' ', text)
