@@ -17,6 +17,7 @@ LOG_CONF = os.environ.get('PTB_LOG_CONF')
 NOTIFY_CHATS = list(filter(lambda i : i is not None,
                       map(lambda s : None if s == '' else int(s),
                           os.environ.get('PTB_NOTIFY_CHAT_IDS', "").split(','))))
+TIMEZONE = os.environ.get('PTB_TIMEZONE', default='Europe/Berlin')
 
 # Polling
 USE_POLLING = os.environ.get('PTB_USE_POLLING', 'True') == 'True'

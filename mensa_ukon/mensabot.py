@@ -1,5 +1,5 @@
 #! /usr/bin/python
-import datetime
+import pendulum
 import logging
 from collections import OrderedDict
 from collections import namedtuple
@@ -135,6 +135,16 @@ class MensaBot(telegram.Bot):
                                                pass_args=True))
 
     @staticmethod
+    def _format_date(date):
+        # return date.format('%A, %d. %B', locale='de')
+        if date.is_today():
+            return 'Heute'
+        elif date.is_tomorrow():
+            return 'Morgen'
+        else:
+            return date.diff_for_humans(locale='de')
+
+    @staticmethod
     def _sort_meals(location, meals):
         # sort by custom sort-order or meal name if no order is present
         ordered_meals = OrderedDict(sorted(meals.items(), key=lambda t: location.order[t[0]] if location.order else t[0]))
@@ -166,12 +176,23 @@ class MensaBot(telegram.Bot):
     def _mensa_plan_all(self, update, args):
         self._mensa_plan(update, args=args)
 
+    def _single_meal(self, meals, meal):
+        # only print the specified meal
+        for loc in meals:
+            try:
+                return '*{0}:* {1}'.format(*loc[1][meal])
+            except KeyError:
+                # meal not present at location
+                pass
+        raise NoMealError(meal)
+
     def _mensa_plan(self, update, meal=None, args=None):
         # TODO simplify method...
         # /mensa [today|tomorrow|date]
         # currently, we only support dates* in the args parameter
         chat_id = update.message.chat.id
-        date = datetime.date.today()
+
+        date = pendulum.today(settings.TIMEZONE)
         try:
             if args:
                 if len(args) > 1:
@@ -182,41 +203,38 @@ class MensaBot(telegram.Bot):
                     if date_arg == 'today':
                         pass
                     elif date_arg == 'tomorrow':
-                        date += datetime.timedelta(days=1)
+                        date = pendulum.tomorrow(settings.TIMEZONE)
                     else:
-                        date = datetime.datetime.strptime(date_arg, '%Y-%m-%d').date()
+                        date = pendulum.parse(date_arg)
+                        # date = datetime.datetime.strptime(date_arg, '%Y-%m-%d').date()
 
             self.sendChatAction(chat_id=chat_id, action=ChatAction.TYPING)
 
             self.logger.debug('Filter for: %s', meal)
             # [(Location, Dict)]
             meals = self.mensa.retrieve(date, Language.de, meals=[meal] if meal else None)
-            msg_text = ''
+            msg_text = Emoji.CLOCK_FACE_TWELVE_OCLOCK + ' *' + MensaBot._format_date(date).title() + '*\n'
             if meal:
-                # only print the specified meal
-                try:
-                    msg_text = '\n'.join(
-                        ['{0} {1}:\n'.format(Emoji.FORK_AND_KNIFE, date.strftime('%Y-%m-%d')), '*{0}:* {1}'.format(*meals[0][1][meal])])
-                except KeyError:
-                    # there is nothing for the specified meal
-                    raise NoMealError(meal)
+                msg_text += self._single_meal(meals, meal)
             else:
                 for loc_meals in meals:
                     if len(loc_meals[1]) > 0:
-                        msg_text += '\n{0} {1} {2}:\n'.format(
-                        Emoji.FORK_AND_KNIFE, loc_meals[0].nice_name, date.strftime('%Y-%m-%d')) + '\n'.join(
+                        msg_text += '\n{0} {1}:\n'.format(
+                        Emoji.FORK_AND_KNIFE, loc_meals[0].nice_name) + '\n'.join(
                             ['*{0}:* {1}'.format(*l[1]) for l in self._sort_meals(loc_meals[0], loc_meals[1]).items()]) + '\n'
                     else:
-                        msg_text += 'No meals found for %s at %s %s\n' % (date.strftime('%Y-%m-%d'), loc_meals[0].nice_name, Emoji.LOUDLY_CRYING_FACE)
+                        msg_text += 'No meals found at %s %s\n' % (loc_meals[0].nice_name, Emoji.LOUDLY_CRYING_FACE)
             try:
                 msg_async(bot=self, chat_id=chat_id, text=msg_text,
                                 parse_mode=ParseMode.MARKDOWN,
                                 disable_web_page_preview=True)
             except Exception as e:
                 exc(self, e)
-        except (ValueError, ArgumentError):
-            msg_async(bot=self, chat_id=chat_id, text='Usage: /mensa [<date>]')
+        except (ValueError, ArgumentError) as e:
+            msg_async(bot=self, chat_id=chat_id, text='\n*Usage:* /mensa [<date>]\ne.g. /mensa 2017-01-01')
+            exc(self, e)
         except NoMealError as nme:
+            self.logger.error(nme.message)
             msg_async(bot=self, chat_id=chat_id, text=nme.message)
 
     def unknown(self, bot, update):

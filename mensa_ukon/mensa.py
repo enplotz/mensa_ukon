@@ -5,7 +5,7 @@ import logging
 import re
 import urllib.error as error
 import urllib.request as request
-from datetime import date
+from pendulum import date
 
 import lxml.html
 from mensa_ukon.emojize import Emojize
@@ -34,7 +34,7 @@ class Mensa(object):
             The endpoint is a bit picky, and wants the parameters in exactly the right order, so that does not work:
             return urllib.parse.urlencode({'func': 'make_spl', 'loc' : loc, 'lang': lang, 'date': date})
             Instead we have to build the string ourselves quickly."""
-            return 'func=make_spl&loc={0}&lang={1}&date={2}'.format(loc, lang, datum.strftime('%Y-%m-%d'))
+            return 'func=make_spl&loc={0}&lang={1}&date={2}'.format(loc, lang, datum.to_date_string())
 
         # locs = locs or DEFAULT_CANTEENS
         logger.debug('Requesting for locations: %s', locs)
