@@ -51,28 +51,32 @@ class Mensa(object):
                 logger.error(e)
         return rs
 
-    @classmethod
-    def _extract_meals(cls, data, filter_meals: list) -> list:
+    @staticmethod
+    def _normalize_key(k: str) -> str:
+        return k.strip().lower().replace(' ', '_')
+
+    @staticmethod
+    def _strip_additives(text: str) -> str:
+        return re.sub('\((\s*(\d+)?[a-z]?[,.]?\s*)+\)', '', text)
+
+    @staticmethod
+    def _normalize_whitespace(text: str) -> str:
+        return re.sub('\s{2,}', ' ', text)
+
+    @staticmethod
+    def _normalize_orthography(text: str) -> str:
+        return re.sub('\s,', ',', text)
+
+    @staticmethod
+    def _clean_text(text: str) -> str:
+        return Mensa._normalize_orthography(Mensa._normalize_whitespace(Mensa._strip_additives(text.strip())))
+
+    @staticmethod
+    def _extract_meals(data, filter_meals: list) -> list:
         """Extract meals from responses"""
 
-        # first we need some helper methods to work with the text
-        def _normalize_key(k: str) -> str:
-            return k.lower().replace(' ', '_')
-
-        def _strip_additives(text: str) -> str:
-            return re.sub('\((\s*\d+[a-z]?[,.]?\s*)+\)', '', text)
-
-        def _normalize_whitespace(text: str) -> str:
-            return re.sub('\s{2,}', ' ', text)
-
-        def _normalize_orthography(text: str) -> str:
-            return re.sub('\s,', ',', text)
-
-        def _clean_text(text: str) -> str:
-            return _normalize_orthography(_normalize_whitespace(_strip_additives(text)))
-
         canteen_meals = []
-        filter_meal_keys = [_normalize_key(meal) for meal in filter_meals] if filter_meals else []
+        filter_meal_keys = [Mensa._normalize_key(meal) for meal in filter_meals] if filter_meals else []
         for mensa, content in data.values():
             logger.debug('Extracting meals from mensa %s', mensa.key)
             logger.debug('Content\n%s', content)
@@ -83,9 +87,9 @@ class Mensa(object):
                 cols = row.cssselect('td')
                 if len(cols) == 2:
                     meal_type = cols[0].text.strip()
-                    norm_meal_type = _normalize_key(meal_type)
+                    norm_meal_type = Mensa._normalize_key(meal_type)
                     if not filter_meals or norm_meal_type in filter_meal_keys:
-                        meals[norm_meal_type] = (meal_type, Emojize.replace(_clean_text(cols[1].text.strip())))
+                        meals[norm_meal_type] = (meal_type, Emojize.replace(Mensa._clean_text(cols[1].text.strip())))
                 else:
                     logger.error('Not enough values in column for canteen %s', mensa.key)
             canteen_meals.append((mensa, meals))
