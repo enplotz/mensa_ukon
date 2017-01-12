@@ -8,6 +8,9 @@ class TestEmojize:
         no_replace = '(Foo)'
         assert no_replace == Emojize.replace(no_replace)
 
+        no_replace2 = '(Foo, bar)'
+        assert no_replace2 == Emojize.replace(no_replace2)
+
         cow = '({})'.format(Emoji.COW)
         assert cow == Emojize.replace('(C)')
 
@@ -20,3 +23,5 @@ class TestEmojize:
         assert clean.format(Emoji.COW, Emoji.SEEDLING) == Emojize.replace(dirty.format('C', 'Vegan'))
         multi = 'Foo bar (Foo) ({}, {})'
         assert multi.format(Emoji.COW, Emoji.CHEESE) == Emojize.replace(multi.format('C', 'Veg'))
+        assert 'Foo bar (Foo) ({}, {}, {}).)'.format(Emoji.PIG, Emoji.COW, Emoji.SEEDLING) == Emojize.replace('Foo bar (Foo) (P, R,Vegan).)'.format('P', 'R','Vegan'))
+

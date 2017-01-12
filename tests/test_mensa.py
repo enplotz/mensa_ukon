@@ -24,9 +24,14 @@ class TestMensa:
             '(1a,2b,3c,4,5e)',
             '( 1a, b,c,d, 2,3 ,  4,  5,6)',
             '(1, 2,3a, b,4a,5,6 )',
+            '(25a, b,c,31)',
         ]
         for s in strip:
             assert Mensa._strip_additives(s) == ''
+
+        # result in only normal text
+        for s in strip:
+            assert Mensa._strip_additives('Foo {} bar.'.format(s)) == 'Foo  bar.'
 
     def test_normalize_whitespace(self):
         assert Mensa._normalize_whitespace('  ') == ' '

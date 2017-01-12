@@ -18,7 +18,7 @@ class Emoji(object):
 
 class Emojize:
 
-    IN_PARENS = re.compile('\(([^)]*?)(?:,([^)]*?))?\)')
+    IN_PARENS = re.compile('\(([\w ,]*)\)')
     # List of possible meals, comma separated.
     TOKENS = [
         (Emoji.COW, re.compile('[RCKB]')),
@@ -38,8 +38,9 @@ class Emojize:
         :return:
         """
         emoji = []
-        for group in match_object.groups():
-            if group:
+        in_parens = match_object.group(1)
+        if in_parens:
+            for group in in_parens.split(','):
                 for e, regex in cls.TOKENS:
                     if regex.fullmatch(group.strip()):
                         emoji.append(e)
@@ -47,7 +48,7 @@ class Emojize:
                 else:
                     # we have to put back our extracted string, which we could not
                     # match with an Emoji character
-                    emoji.append(group)
+                    emoji.append(group.strip())
         return '(' + ", ".join(emoji) + ')'
 
     @classmethod
