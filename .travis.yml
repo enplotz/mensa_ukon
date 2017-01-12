@@ -2,7 +2,9 @@ sudo: false
 language: python
 python:
   - 3.5
-env:
-  global:
-    - PIP_DISABLE_PIP_VERSION_CHECK=on
-script: python setup.py test
+  - 3.6
+#env:
+#  global:
+#    - PIP_DISABLE_PIP_VERSION_CHECK=on
+install: "pip install pytest && pip install ."
+script: py.test # for backwards-compatibility with python 3.5 and below

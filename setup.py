@@ -5,28 +5,23 @@ from setuptools import setup, find_packages
 from distutils.util import convert_path
 import codecs
 
-ns = {}
-version_path = convert_path('mensa_ukon/version.py')
+with codecs.open('README.md', 'r', 'utf-8') as readme_f, \
+    codecs.open(convert_path('mensa_ukon/version.py'), 'r', 'utf-8') as vf, \
+    codecs.open('requirements.txt', 'r', 'utf-8') as req_f:
 
-with codecs.open(version_path, 'r', 'utf-8') as vf:
+    needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
+    pytest_runner = ['pytest-runner>=2.0,<3dev'] if needs_pytest else []
+
+    # get version information without importing to circumvent dependency issues
+    ns = {}
     exec(vf.read(), ns)
 
-def requirements():
-    rs = []
-    with codecs.open('requirements.txt', 'r', 'utf-8') as f:
-        for i in f:
-            rs.append(i.strip())
-
-needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
-pytest_runner = ['pytest-runner>=2.0,<3dev'] if needs_pytest else []
-
-with codecs.open('README.md', 'r', 'utf-8') as fd:
     setup(name='mensa-ukon',
           version=ns['__version__'],
           author='Manuel Hotz',
           author_email='manuel.hotz@uni-konstanz.de',
-          description='Python library to access the canteen plan of the Uni Konstanz.',
-          long_description=fd.read(),
+          description='Python library/bot to access the canteen plan of the Uni Konstanz.',
+          long_description=readme_f.read(),
           url='https://github.com/enplotz/mensa_ukon',
           keywords='python canteen api wrapper bot',
           packages=find_packages(exclude=['tests*']),
@@ -37,16 +32,17 @@ with codecs.open('README.md', 'r', 'utf-8') as fd:
                   'mensa_bot = scripts.bot:run_bot', # TODO Needs external .env file location... like in $HOME/.config/mensabot
               ]
           },
-          setup_requires=[
-              # ... (other setup requirements)
-          ] + pytest_runner,
+          setup_requires=pytest_runner,
           tests_require=['pytest'],
-          install_requires=requirements(),
+          install_requires=[l.strip() for l in req_f],
           include_package_data=True,
           classifiers=[
-              'Environment :: MacOS X',
+              'Intended Audience :: Developers',
               'Operating System :: MacOS :: MacOS X',
+              'Operating System :: GNU/Linux',
+              'Programming Language :: Python',
               'Programming Language :: Python :: 3.5',
+              'Programming Language :: Python :: 3.6',
               'Topic :: Information Retrieval',
               'Topic :: Utility',
           ]

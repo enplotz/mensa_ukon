@@ -1,0 +1,7 @@
+name: mensa-bot
+channels: !!python/tuple
+- !!python/unicode
+  'defaults'
+dependencies:
+- python>=3.5
+- pip

@@ -80,5 +80,3 @@ pip-selfcheck.json
 # Ignore database files
 *.db
 
-# Ignore random txt files
-*.txt
