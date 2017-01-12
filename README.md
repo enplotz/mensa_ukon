@@ -103,5 +103,6 @@ Sadly, the library has not many tests for now 😢.
 - [ ] Library to PyPi?
 - [ ] subscription feature (daily meals for configured days of week)
 - [ ] more tests (investigate what tox & nose are for)
+- [ ] simplify `_mensa_plan` method
 - [x] script install for bot --> specify .env file b/c it does not get bundled and `settings.py` cannot find it then
 - [x] Conda environment

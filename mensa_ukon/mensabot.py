@@ -191,8 +191,9 @@ class MensaBot(telegram.Bot):
         # /mensa [today|tomorrow|date]
         # currently, we only support dates* in the args parameter
         chat_id = update.message.chat.id
-
-        date = pendulum.today(settings.TIMEZONE)
+        self.sendChatAction(chat_id=chat_id, action=ChatAction.TYPING)
+        today = pendulum.today(settings.TIMEZONE)
+        date = None
         try:
             if args:
                 if len(args) > 1:
@@ -201,15 +202,22 @@ class MensaBot(telegram.Bot):
                     date_arg = args[0]
 
                     if date_arg == 'today':
-                        pass
+                        date = today
                     elif date_arg == 'tomorrow':
                         date = pendulum.tomorrow(settings.TIMEZONE)
                     else:
                         date = pendulum.parse(date_arg)
                         # date = datetime.datetime.strptime(date_arg, '%Y-%m-%d').date()
-
-            self.sendChatAction(chat_id=chat_id, action=ChatAction.TYPING)
-
+                        if today > date:
+                            try:
+                                msg_async(bot=self, chat_id=chat_id, text='No past dates allowed.',
+                                          parse_mode=ParseMode.MARKDOWN,
+                                          disable_web_page_preview=True)
+                                return
+                            except Exception as e:
+                                exc(self, e)
+            else:
+                date = today
             self.logger.debug('Filter for: %s', meal)
             # [(Location, Dict)]
             meals = self.mensa.retrieve(date, Language.de, meals=[meal] if meal else None)
@@ -231,7 +239,7 @@ class MensaBot(telegram.Bot):
             except Exception as e:
                 exc(self, e)
         except (ValueError, ArgumentError) as e:
-            msg_async(bot=self, chat_id=chat_id, text='\n*Usage:* /mensa [<date>]\ne.g. /mensa 2017-01-01')
+            msg_async(bot=self, chat_id=chat_id, text='\n*Usage:* /mensa [<date>]\ne.g. /mensa 2017-01-01', parse_mode=ParseMode.MARKDOWN)
             exc(self, e)
         except NoMealError as nme:
             self.logger.error(nme.message)
