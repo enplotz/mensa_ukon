@@ -106,3 +106,25 @@ Sadly, the library has not many tests for now 😢.
 - [ ] simplify `_mensa_plan` method
 - [x] script install for bot --> specify .env file b/c it does not get bundled and `settings.py` cannot find it then
 - [x] Conda environment
+
+
+### Revised Settings
+
+```
+Python 3.6.0 |Continuum Analytics, Inc.| (default, Dec 23 2016, 13:19:00)
+[GCC 4.2.1 Compatible Apple LLVM 6.0 (clang-600.0.57)] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from mensa_ukon.mensabot import MensaBot
+>>> b = MensaBot(None)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "[...]/mensa_ukon/mensa_ukon/mensabot.py", line 90, in __init__
+    super(MensaBot, self).__init__(MensaBot._token())
+  File "[...]/mensa_ukon/mensa_ukon/mensabot.py", line 85, in _token
+    raise BotConfigurationError('Missing bot token.')
+mensa_ukon.mensabot.BotConfigurationError: Error configuring bot: 'Missing bot token.'.
+>>> from mensa_ukon import utils
+>>> utils.load_from_dict({'PTB_TELEGRAM_BOT_TOKEN': 'TOKENTOKENTOKEN'})
+>>> utils.reload_settings()
+>>> b = MensaBot(None)
+```

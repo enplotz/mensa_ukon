@@ -1,15 +1,10 @@
 #! /usr/bin/env python
 import logging
 import os
-from os.path import join
-
-from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
-# dotenv_path = join(dirname(__file__), '.env')
-dotenv_path = join(os.getcwd(), '.env')
-load_dotenv(dotenv_path)
+# Settings only for bot
 
 # General
 TOKEN = os.environ.get('PTB_TELEGRAM_BOT_TOKEN')
@@ -22,6 +17,7 @@ TIMEZONE = os.environ.get('PTB_TIMEZONE', default='Europe/Berlin')
 # Polling
 USE_POLLING = os.environ.get('PTB_USE_POLLING', 'True') == 'True'
 WORKERS = int(os.environ.get('PTB_WORKERS', 2))
+
 # Webhook
 URL = os.environ.get('PTB_WEBHOOK_URL')
 LISTEN_IP = os.environ.get('PTB_WEBHOOK_LISTEN_IP')

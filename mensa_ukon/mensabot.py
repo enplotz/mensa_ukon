@@ -41,6 +41,12 @@ class NoMealError(BotError):
         super(NoMealError, self).__init__('No meal found for \'{}\'.'.format(meal.capitalize()))
 
 
+class BotConfigurationError(BotError):
+    def __init__(self, msg: str):
+        super(BotConfigurationError, self).__init__('Error configuring bot: \'{}\'.'.format(msg))
+
+
+
 class MensaBot(telegram.Bot):
 
     CMDShortcut = namedtuple('CMDShortcut', ['command', 'meal', 'location', 'short_help'])
@@ -73,8 +79,15 @@ class MensaBot(telegram.Bot):
                '/mensa tomorrow\n' \
                '/mensa 2016-02-24\n'
 
+    @staticmethod
+    def _token():
+        if settings.TOKEN is None:
+            raise BotConfigurationError('Missing bot token.')
+        return settings.TOKEN
+
     def __init__(self, canteens):
-        super(MensaBot, self).__init__(settings.TOKEN)
+        # TODO fix settings module needing import before MensaBot init...
+        super(MensaBot, self).__init__(MensaBot._token())
         self.logger = logging.getLogger(__name__)
         self.commands = []
         self.mensa = Mensa(canteens)
@@ -150,6 +163,16 @@ class MensaBot(telegram.Bot):
         ordered_meals = OrderedDict(sorted(meals.items(), key=lambda t: location.order[t[0]] if location.order else t[0]))
         return ordered_meals
 
+    @staticmethod
+    def _str_for_single_meal(meals: dict, meal: str) -> str:
+        for loc in meals:
+            try:
+                return '*{0}:* {1}'.format(*loc[1][meal])
+            except KeyError:
+                # meal not present at location
+                pass
+        raise NoMealError(meal)
+
     def _print_commands(self):
         # we want to print both commands for the bot, as well as commands to get meals
         return "\n".join(map(lambda c: '/' + c[0] + ' ' + c[1], self.commands)) \
@@ -175,16 +198,6 @@ class MensaBot(telegram.Bot):
 
     def _mensa_plan_all(self, update, args):
         self._mensa_plan(update, args=args)
-
-    def _single_meal(self, meals, meal):
-        # only print the specified meal
-        for loc in meals:
-            try:
-                return '*{0}:* {1}'.format(*loc[1][meal])
-            except KeyError:
-                # meal not present at location
-                pass
-        raise NoMealError(meal)
 
     def _mensa_plan(self, update, meal=None, args=None):
         # TODO simplify method...
@@ -223,7 +236,7 @@ class MensaBot(telegram.Bot):
             meals = self.mensa.retrieve(date, Language.de, meals=[meal] if meal else None)
             msg_text = Emoji.CLOCK_FACE_TWELVE_OCLOCK + ' *' + MensaBot._format_date(date).title() + '*\n'
             if meal:
-                msg_text += self._single_meal(meals, meal)
+                msg_text += self._str_for_single_meal(meals, meal)
             else:
                 for loc_meals in meals:
                     if len(loc_meals[1]) > 0:

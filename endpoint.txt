@@ -1,0 +1,59 @@
+# Chrome DevTools Rightclick on Network Request Copy As cURL
+
+
+# Themenpark:
+
+curl 'https://www.max-manager.de/daten-extern/seezeit/html/inc/ajax-php_konnektor.inc.php' \
+      -H 'Origin: https://www.max-manager.de' \
+      -H 'Accept-Encoding: gzip, deflate' \
+      -H 'X-Request: JSON' \
+      -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36' \
+      -H 'Content-type: application/x-www-form-urlencoded; charset=UTF-8' \
+      -H 'Accept-Language: en-US,en;q=0.8,de;q=0.6' \
+      -H 'Accept: application/json' \
+      -H 'Referer: https://www.max-manager.de/daten-extern/seezeit/html/themenpark_abendessen/aktuell.html' \
+      -H 'X-Requested-With: XMLHttpRequest' \
+      -H 'Connection: keep-alive' \
+      -H 'DNT: 1' \
+      --data 'func=make_spl&loc=themenpark_abendessen&lang=de&date=2016-02-19' \
+      --compressed
+
+# Giessberg
+
+curl 'https://www.max-manager.de/daten-extern/seezeit/html/inc/ajax-php_konnektor.inc.php' \
+      -H 'Origin: https://www.max-manager.de' \
+      -H 'Accept-Encoding: gzip, deflate' \
+      -H 'X-Request: JSON' \
+      -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36' \
+      -H 'Content-type: application/x-www-form-urlencoded; charset=UTF-8' \
+      -H 'Accept-Language: en-US,en;q=0.8,de;q=0.6' \
+      -H 'Accept: application/json' \
+      -H 'Cache-Control: max-age=0' \
+      -H 'X-Requested-With: XMLHttpRequest' \
+      -H 'Connection: keep-alive' \
+      -H 'Referer: https://www.max-manager.de/daten-extern/seezeit/html/mensa_giessberg/aktuell.html' \
+      -H 'DNT: 1' \
+      --data 'func=make_spl&loc=mensa_giessberg&lang=de&date=2016-02-19' \
+      --compressed
+
+# Minimum request test:
+# - gzip optional
+# - application/json not honored anyway
+# -
+
+# Curl to Requests
+'''curl 'https://www.max-manager.de/daten-extern/seezeit/html/inc/ajax-php_konnektor.inc.php' \\
+      -H 'Accept-Encoding: gzip, deflate' \\
+      -H 'X-Request: JSON' \\
+      -H 'X-Requested-With: XMLHttpRequest' \\
+      -H 'Content-type: application/x-www-form-urlencoded; charset=UTF-8' \\
+      --data 'func=make_spl&loc=mensa_giessberg&lang=de&date=2016-02-22' \\
+      --compressed'''
+
+
+import requests
+headers = {'Content-type': ' application/x-www-form-urlencoded; charset=UTF-8', 'X-Request': ' JSON', 'X-Requested-With': ' XMLHttpRequest', 'Accept-Encoding': ' gzip, deflate'}
+data = '''func=make_spl&loc=mensa_giessberg&lang=de&date=2016-02-22'''
+r = requests.post('https://www.max-manager.de/daten-extern/seezeit/html/inc/ajax-php_konnektor.inc.php', headers=headers, data=data)
+
+
