@@ -5,11 +5,12 @@ import logging
 import re
 import urllib.error as error
 import urllib.request as request
-from pendulum import date
+from functools import lru_cache
 
 import lxml.html
-from mensa_ukon.emojize import Emojize
+from pendulum import date
 
+from mensa_ukon.emojize import Emojize
 from .constants import DEFAULT_CANTEENS, CANTEENS, HEADERS, ENDPOINT, Language
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,14 @@ class Mensa(object):
     def __init__(self, canteens=DEFAULT_CANTEENS):
         """Constructor."""
         self.canteens = canteens
+
+    @classmethod
+    @lru_cache(maxsize=7)
+    def _do_request(cls, data):
+        # TODO time-bound eviction
+        req = request.Request(ENDPOINT, data=data, headers=HEADERS, method='POST')
+        with request.urlopen(req) as f:
+            return f.read().decode('utf-8')
 
     @classmethod
     def _make_requests(cls, datum: date, locs: list, lang: str):
@@ -44,9 +53,7 @@ class Mensa(object):
         for loc in locations:
             data = format_post_data(loc.key, lang, datum).encode('ascii')
             try:
-                req = request.Request(ENDPOINT, data=data, headers=HEADERS, method='POST')
-                with request.urlopen(req) as f:
-                    rs[loc.key] = (loc, f.read().decode('utf-8'))
+                rs[loc.key] = (loc, cls._do_request(data))
             except error.HTTPError as e:
                 logger.error(e)
         return rs
@@ -72,9 +79,8 @@ class Mensa(object):
         return Mensa._normalize_orthography(Mensa._normalize_whitespace(Mensa._strip_additives(text.strip())))
 
     @staticmethod
-    def _extract_meals(data, filter_meals: list) -> list:
+    def _extract_meals(data, filter_meals: list, emojize = True) -> list:
         """Extract meals from responses"""
-
         canteen_meals = []
         filter_meal_keys = [Mensa._normalize_key(meal) for meal in filter_meals] if filter_meals else []
         for mensa, content in data.values():
@@ -89,15 +95,16 @@ class Mensa(object):
                     meal_type = cols[0].text.strip()
                     norm_meal_type = Mensa._normalize_key(meal_type)
                     if not filter_meals or norm_meal_type in filter_meal_keys:
-                        meals[norm_meal_type] = (meal_type, Emojize.replace(Mensa._clean_text(cols[1].text.strip())))
+                        clean_text = Mensa._clean_text(cols[1].text.strip())
+                        meals[norm_meal_type] = (meal_type, Emojize.replace(clean_text) if emojize else clean_text)
                 else:
                     logger.error('Not enough values in column for canteen %s', mensa.key)
             canteen_meals.append((mensa, meals))
         logger.debug(canteen_meals)
         return canteen_meals
 
-    def retrieve(self, datum=date.today, language=Language.de, meals=None):
+    def retrieve(self, datum=date.today, language=Language.de, meals=None, emojize=True):
         if not isinstance(datum, date):
             datum = datum()
         rs = self._make_requests(datum, self.canteens, language)
-        return self._extract_meals(rs, filter_meals=meals)
+        return self._extract_meals(rs, filter_meals=meals, emojize=emojize)
