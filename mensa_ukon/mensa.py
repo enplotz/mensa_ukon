@@ -79,6 +79,10 @@ class Mensa(object):
         return Mensa._normalize_orthography(Mensa._normalize_whitespace(Mensa._strip_additives(text.strip())))
 
     @staticmethod
+    def _text_replace(text: str) -> str:
+        return re.sub('Züricher', "Zürcher", text)
+
+    @staticmethod
     def _extract_meals(data, filter_meals: list, emojize = True) -> list:
         """Extract meals from responses"""
         canteen_meals = []
@@ -95,7 +99,7 @@ class Mensa(object):
                     meal_type = cols[0].text.strip()
                     norm_meal_type = Mensa._normalize_key(meal_type)
                     if not filter_meals or norm_meal_type in filter_meal_keys:
-                        clean_text = Mensa._clean_text(cols[1].text.strip())
+                        clean_text = Mensa._text_replace(Mensa._clean_text(cols[1].text.strip()))
                         meals[norm_meal_type] = (meal_type, Emojize.replace(clean_text) if emojize else clean_text)
                 else:
                     logger.error('Not enough values in column for canteen %s', mensa.key)
