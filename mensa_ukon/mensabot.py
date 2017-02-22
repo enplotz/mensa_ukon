@@ -363,7 +363,7 @@ class MensaBot(telegram.Bot):
             try:
                 date = MensaBot._parse_datum(args[0])
             except pendulum.parsing.exceptions.ParserError:
-                self.logger.info('Got unknown date format: %', args[0])
+                self.logger.info('Got unknown date format: %s', args[0])
                 self._msg_async(chat_id=chat_id, text='Sorry, I do not understand the date you gave me: {}'.format(args[0]))
                 return
         else:
