@@ -12,6 +12,7 @@ from telegram import Emoji
 from telegram import InlineQueryResultArticle
 from telegram import InputTextMessageContent
 from telegram import ParseMode
+from telegram.error import (Unauthorized, BadRequest, TimedOut, NetworkError, ChatMigrated, TelegramError)
 from telegram.ext import CommandHandler
 from telegram.ext import Filters
 from telegram.ext import InlineQueryHandler
@@ -65,11 +66,6 @@ def exc(bot, ex):
     """Exception handling."""
     # TODO use logger from MensaBot instance and not Telegram bot instance
     bot.logger.exception(ex)
-
-
-def error(bot, err):
-    """ Error handling."""
-    bot.logger.error("An error (%s) occurred: %s", type(err), err.message)
 
 
 class MensaBot(telegram.Bot):
@@ -139,8 +135,30 @@ class MensaBot(telegram.Bot):
         for cmd in self.SHORTCUTS:
             self._add_meal_command(cmd)
 
-        self.dp.add_error_handler(error)
+        self.dp.add_error_handler(MensaBot._error)
         self.dp.add_handler(MessageHandler(Filters.command, self._unknown_command))
+
+    @staticmethod
+    def _error(bot, update, error):
+        """ Error handling."""
+        bot.logger.error("An error (%s) occurred: %s", type(error), error.message)
+        try:
+            raise error
+        except Unauthorized:
+            # I guess since we are not keeping track of conversations ourselves, we cannot remove
+            # the bot from the conversation list?
+            pass
+        # TODO handle remaining errors...
+        except BadRequest:
+            pass
+        except TimedOut:
+            pass
+        except NetworkError:
+            pass
+        except ChatMigrated as e:
+            pass
+        except TelegramError:
+            pass
 
     def _unknown_command(self, bot, update):
         bot.logger.info('Received unknown command: %s', update.message)
