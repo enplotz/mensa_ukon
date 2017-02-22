@@ -82,6 +82,35 @@ mensa_bot
 
 You can see available command line arguments/options via the `--help` flag.
 
+### Systemd
+
+A simple template file for systemd is included: `etc/mensabot@.service`. 
+Before you copy it, you have to read it!
+Once you made sure the file looks to fit your needs, you have to place it (or symlink it) to
+`/etc/systemd/system/mensabot@.service`. Then you can enable the service.
+
+For example, to enable the unit for the user `ubuntu`, with a working directory of `/home/ubuntu/mensa_ukon` and the
+executable installed to `/home/ubuntu/.local/bin/mensa_bot`:
+
+```bash
+$ systemctl enable mensabot@ubuntu.service
+```
+
+*NOTE*: Because of a (recently fixed) bug in systemd, expansions in `ExecStart` are not yet supported.
+Currently, the path to the `mensa_bot` executable is hardcoded as `/home/ubuntu/.local/bin/mensa_bot`.
+
+Then you can start/stop/restart the bot:
+```bash
+$ systemctl start mensabot@ubuntu
+$ systemctl restart mensabot@ubuntu
+$ systemctl stop mensabot@ubuntu
+```
+
+Logs are handled using `syslog` and can be retrieved by systemd's `journalctl`. You can use `journalctl -u mensabot@ubuntu` to read the logs.
+`-f` sets the log to follow (like `tail -f`).
+
+
+
 ## 💻 Development
 
 In order to reproduce a known working development environment, `pip freeze` is used.
