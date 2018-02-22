@@ -1,0 +1,28 @@
+[[source]]
+
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+
+[packages]
+
+python-dotenv = ">=0.5.1"
+python-telegram-bot = "==6.0.1"
+pyyaml = "*"
+lxml = "*"
+cssselect = "*"
+click = "*"
+click-datetime = "*"
+click-log = "*"
+pendulum = "*"
+"e1839a8" = {path = ".", editable = true}
+
+
+[dev-packages]
+
+
+
+[requires]
+
+python_version = "3.6"

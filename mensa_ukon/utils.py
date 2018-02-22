@@ -27,8 +27,8 @@ def load_from_env(env_path):
         load_dotenv(env_path)
     else:
         dotenv_path = path.join(getcwd(), '.env')
-        if not os.path.exists(dotenv_path):
-            raise BotConfigurationError('.env does not exist at {}'.format(dotenv_path))
-        load_dotenv(dotenv_path)
+        if os.path.exists(dotenv_path):
+            load_dotenv(dotenv_path)
+    # e.g. for deploy on heroku we have no .env file, but everything is already in ConfigVars
 
     importlib.reload(settings)

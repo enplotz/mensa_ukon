@@ -6,5 +6,5 @@ python:
 #env:
 #  global:
 #    - PIP_DISABLE_PIP_VERSION_CHECK=on
-install: "pip install pytest && pip install ."
+install: "pip install pytest pipenv && pipenv install -e ."
 script: py.test # for backwards-compatibility with python 3.5 and below

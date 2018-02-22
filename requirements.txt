@@ -1,9 +1,0 @@
-python-dotenv>=0.5.1
-python-telegram-bot
-PyYAML
-lxml
-cssselect
-click
-click-datetime
-click_log
-pendulum

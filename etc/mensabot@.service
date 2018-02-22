@@ -8,10 +8,10 @@ Type=simple
 User=%I
 Group=%I
 WorkingDirectory=/home/%I/mensa_ukon/
-# Until the fix hits the Ubuntu distro (see: https://github.com/systemd/systemd/pull/4835)
-# we cannot expand %i/%I in ExecStart, so the following wont work for now and needs to hardcode the path:
-#ExecStart=/home/%I/.local/bin/mensa_bot
-ExecStart=/home/ubuntu/.local/bin/mensa_bot
+# This seems to be fixed now: https://github.com/systemd/systemd/pull/4835
+# Previously, we could not expand %i/%I in ExecStart, so the following did not work for and needed to be hardcoded:
+ExecStart=/home/%I/.local/bin/mensa_bot
+#ExecStart=/home/ubuntu/.local/bin/mensa_bot
 StandardOutput=syslog
 StandardError=syslog
 

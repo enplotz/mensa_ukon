@@ -287,6 +287,22 @@ class MensaBot(telegram.Bot):
                         parse_mode=ParseMode.MARKDOWN,
                         disable_web_page_preview=True)
 
+    # TODO custom keyboard with emoji as meals
+
+    # def _inline_test(self, bot, update):
+    #  keyboard = [[InlineKeyboardButton("Stamm", callback_data='stamm'),
+    #  InlineKeyboardButton("Wahl", callback_data='wahl')],
+    # [InlineKeyboardButton("Bio", callback_data='bio')]]
+    #
+    #     reply_markup = InlineKeyboardMarkup(keyboard)
+    #     update.message.reply_text('Please choose:', reply_markup=reply_markup)
+    #
+    # def _inline_selected(self, bot, update):
+    #     query = update.callback_query
+    #     bot.editMessageText(text='Selected option: {}'.format(query.data),
+    #                         chat_id=query.message.chat_id,
+    #                         message_id=query.message.message_id)
+
     def _inlinequery(self, bot, update):
         query = update.inline_query.query
         self.logger.debug('Got query: %s', query)
