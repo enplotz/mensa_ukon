@@ -3,9 +3,10 @@ language: python
 python:
   - "3.5"
   - "3.6"
-  - "3.7-dev
+
+
 install:
-  - pip install pytest pipenv
+  - pip3 install pipenv
   - pipenv install --dev
 
 # for backwards-compatibility with python 3.5 and below 'py.test'
