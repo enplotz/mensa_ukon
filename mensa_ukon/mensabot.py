@@ -1,4 +1,6 @@
-#! /usr/bin/python
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import logging
 from collections import OrderedDict
 from collections import namedtuple
@@ -8,7 +10,6 @@ import pendulum
 import telegram
 from pendulum.parsing.exceptions import ParserError
 from telegram import ChatAction
-from telegram import Emoji
 from telegram import InlineQueryResultArticle
 from telegram import InputTextMessageContent
 from telegram import ParseMode
@@ -328,7 +329,7 @@ class MensaBot(telegram.Bot):
                     title=meal[0],
                     description=meal[1],
                     input_message_content=InputTextMessageContent(
-                        '{} *{}*\n*{}*: {}'.format(Emoji.CLOCK_FACE_TWELVE_OCLOCK,
+                        '🕛 *{}*\n*{}*: {}'.format(
                                                    MensaBot._format_date_relative(date).title(), meal[0], meal[1]),
                         parse_mode=ParseMode.MARKDOWN)))
 
@@ -342,7 +343,7 @@ class MensaBot(telegram.Bot):
         else:
             results.append(InlineQueryResultArticle(
                 id=uuid4(),
-                title=Emoji.LOUDLY_CRYING_FACE + ' No meals',
+                title='😭 No meals',
                 description='There are no meals for specified date: {}.'.format(MensaBot._format_date_relative(date).title()),
                 input_message_content=InputTextMessageContent(self._msg_text_for_meals(date, meals),
                                                               parse_mode=ParseMode.MARKDOWN)
@@ -350,18 +351,18 @@ class MensaBot(telegram.Bot):
         update.inline_query.answer(results)
 
     def _msg_text_for_meals(self, date, meals, meal=None):
-        msg_text = Emoji.CLOCK_FACE_TWELVE_OCLOCK + ' *' + MensaBot._format_date_relative(date).title() + '*\n'
+        msg_text = '🕛 *' + MensaBot._format_date_relative(date).title() + '*\n'
         if meal:
             msg_text += self._str_for_single_meal(meals, meal)
         else:
             for loc_meals in meals:
                 if len(loc_meals[1]) > 0:
-                    msg_text += '\n{0} {1}:\n'.format(
-                        Emoji.FORK_AND_KNIFE, loc_meals[0].nice_name) + '\n'.join(
+                    msg_text += '\n🍴 {0}:\n'.format(
+                        loc_meals[0].nice_name) + '\n'.join(
                         ['*{0}:* {1}'.format(*l[1]) for l in
                          self._sort_meals(loc_meals[0], loc_meals[1]).items()]) + '\n'
                 else:
-                    msg_text += 'No meals found at %s %s\n' % (loc_meals[0].nice_name, Emoji.LOUDLY_CRYING_FACE)
+                    msg_text += 'No meals found at {0} 😭\n'.format(loc_meals[0].nice_name)
         return msg_text
 
     def _mensa_plan(self, update, meal=None, args=None):

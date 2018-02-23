@@ -1,10 +1,13 @@
 sudo: false
 language: python
 python:
-  - 3.5
-  - 3.6
-#env:
-#  global:
-#    - PIP_DISABLE_PIP_VERSION_CHECK=on
-install: "pip install pytest pipenv && pipenv install -e ."
-script: py.test # for backwards-compatibility with python 3.5 and below
+  - "3.5"
+  - "3.6"
+  - "3.7-dev
+install:
+  - pip install pytest pipenv
+  - pipenv install --dev
+
+# for backwards-compatibility with python 3.5 and below 'py.test'
+script:
+  - pipenv run py.test tests

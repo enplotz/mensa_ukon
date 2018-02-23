@@ -1,12 +1,13 @@
 #! /usr/bin/env python
 
+
 import logging
 import sys
 from datetime import datetime
 
 import click
 from click_datetime import Datetime
-from mensa_ukon import version, utils
+from mensa_ukon import version
 from mensa_ukon.constants import Language, Canteen, Verbosity, Format, FORMATTERS, DEFAULT_CANTEENS
 from mensa_ukon.mensa import Mensa
 
@@ -35,7 +36,6 @@ def meals(date, language, canteen, format, verbosity, meals):
     """This script retrieves specified meals from the canteen plan of the University of Konstanz."""
 
     _setup_logging(verbosity)
-    # utils.load_from_cwd()
 
     logger.debug('Date: {}'.format(date))
     logger.debug('Language: {}'.format(language))

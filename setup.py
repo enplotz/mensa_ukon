@@ -23,19 +23,27 @@ with codecs.open('README.md', 'r', 'utf-8') as readme_f, \
           long_description=readme_f.read(),
           url='https://github.com/enplotz/mensa_ukon',
           keywords='python canteen api wrapper bot',
+          python_requires='~=3.5',
           packages=find_packages(exclude=['tests*']),
           py_modules=['mensa', 'bot', 'settings'],
+          # TODO structure canteen data source as plugins
+          # see https://setuptools.readthedocs.io/en/latest/setuptools.html#dynamic-discovery-of-services-and-plugins
           entry_points={
               'console_scripts': [
                   'mensa = scripts.mensa_cli:meals',
-                  'mensa_bot = scripts.bot:run_bot', # TODO Needs external .env file location... like in $HOME/.config/mensabot
+                  'mensa_bot = scripts.bot:run_bot',
               ]
           },
           setup_requires=pytest_runner,
           tests_require=['pytest'],
-          # Not really sure how to keep in sync with Pipfile
-          # see ongoing issue at: https://github.com/pypa/pipenv/issues/1263
-          install_requires=['python-dotenv>=0.5.1', 'python-telegram-bot==6.0.1', 'pyyaml', 'lxml', 'cssselect', 'click', 'click-datetime', 'click-log', 'pendulum'],
+          install_requires=['python-telegram-bot~=9.0',
+                            'pyyaml',
+                            'lxml',
+                            'cssselect',
+                            'click',
+                            'click-datetime',
+                            'click-log',
+                            'pendulum'],
           include_package_data=True,
           classifiers=[
               'Intended Audience :: Developers',

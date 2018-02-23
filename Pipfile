@@ -5,24 +5,21 @@ verify_ssl = true
 name = "pypi"
 
 
-[packages]
-
-python-dotenv = ">=0.5.1"
-python-telegram-bot = "==6.0.1"
-pyyaml = "*"
-lxml = "*"
-cssselect = "*"
-click = "*"
-click-datetime = "*"
-click-log = "*"
-pendulum = "*"
-"e1839a8" = {path = ".", editable = true}
-
-
-[dev-packages]
-
-
-
 [requires]
 
 python_version = "3.6"
+
+
+[packages]
+# Specify packages that are needed for a _specific_ instance of a running bot (e.g. in 'scripts/...').
+# In `setup.py` all library dependencies will be located. This way, `Pipfile.lock` can pin mensa-ukon's transitive deps
+# for a running bot.
+# Just use `pipenv install`
+mensa-ukon = {path = "."}
+
+
+[dev-packages]
+# In dev mode we want to be able to just edit our library
+# `pipenv install --dev`
+mensa-ukon = {path = ".", editable = true}
+pytest = "*"

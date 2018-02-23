@@ -21,7 +21,7 @@ $ cd mensa_ukon
 # Install Pipenv (if you don't have already)
 $ pip3 install pipenv
 # Dependency and bot/script installation
-$ pipenv install .
+$ pipenv install
 # ... which will install the dependencies of the package located in the current folder
 ```
 
@@ -60,6 +60,9 @@ Filling in your Telegram Bot API Token is the minimum you have to configure.
 
 ```sh
 $ pipenv shell # to activate the environmet if it got deactivated
+Loading .env environment variables…
+Spawning environment shell (/usr/local/bin/bash). Use 'exit' to leave.
+[...]
 $ mensa_bot
 ```
 
@@ -122,11 +125,9 @@ $ heroku logs -t
 
 ## 💻 Development 
 
-**NOTE:** This whole section is not up to date with Pipfile method. Though currently the dependency versions are still the same.
-
-In order to reproduce a known working development environment, `pip freeze` is used.
-Its (current) output is located in `requirements-dev.txt` and lists dependencies with specific version numbers.
-
+Development libraries are specified in `Pipfile` under `[dev-packages]`.
+If you want to develop either the library or the bot, 
+simply run `pipenv install --dev` to install all dev and runtime dependencies.
 
 ### 🔍 Running tests
 

@@ -11,7 +11,7 @@ import lxml.html
 from pendulum import date
 
 from mensa_ukon.emojize import Emojize
-from .constants import DEFAULT_CANTEENS, CANTEENS, HEADERS, ENDPOINT, Language
+from mensa_ukon.constants import DEFAULT_CANTEENS, CANTEENS, HEADERS, ENDPOINT, Language
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())

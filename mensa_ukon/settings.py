@@ -1,8 +1,5 @@
 #! /usr/bin/env python
-import logging
 import os
-
-logger = logging.getLogger(__name__)
 
 # Settings only for bot
 

@@ -1,12 +1,9 @@
-import importlib
 import logging
 import logging.config
 
 import click
-from dotenv import load_dotenv
 
-import mensa_ukon
-from mensa_ukon import version, settings, utils
+from mensa_ukon import version, settings
 from mensa_ukon.constants import Canteen, DEFAULT_CANTEENS, Verbosity
 from mensa_ukon.mensabot import MensaBot, BotError
 
@@ -32,14 +29,13 @@ def _setup_logging(verbosity, default_level=logging.INFO,
 
 @click.command()
 @click.option('-c', '--canteen', type=click.Choice(Canteen), multiple=True, default=DEFAULT_CANTEENS, help='restrict output to specific canteen')
-@click.option('-e', '--env', help='.env file location to load variables from')
+@click.option('-e', '--env', help='**IGNORED** .env file location to load variables from')
 @click.option('-v', '--verbosity', count=True)
 @click.version_option(version=version.__version__)
 def run_bot(canteen, verbosity, env):
     # Telegram bot framework setup
     _setup_logging(verbosity)
     try:
-        utils.load_from_env(env)
 
         if settings.TOKEN is None:
             logger.exception('Missing required bot token. Quitting...')
