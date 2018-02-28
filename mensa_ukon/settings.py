@@ -11,6 +11,8 @@ NOTIFY_CHATS = list(filter(lambda i : i is not None,
                           os.environ.get('PTB_NOTIFY_CHAT_IDS', "").split(','))))
 TIMEZONE = os.environ.get('PTB_TIMEZONE', default='Europe/Berlin')
 
+CANTEEN = os.environ.get('PTB_CANTEEN', default='giessberg')
+
 # Polling
 USE_POLLING = os.environ.get('PTB_USE_POLLING', 'True') == 'True'
 WORKERS = int(os.environ.get('PTB_WORKERS', 2))

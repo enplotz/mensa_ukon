@@ -11,6 +11,8 @@ python_version = "3.6"
 
 
 [packages]
+
+requests-html = "*"
 # Specify packages that are needed for a _specific_ instance of a running bot (e.g. in 'scripts/...').
 # In `setup.py` all library dependencies will be located. This way, `Pipfile.lock` can pin mensa-ukon's transitive deps
 # for a running bot.
@@ -21,5 +23,6 @@ mensa-ukon = {path = "."}
 [dev-packages]
 # In dev mode we want to be able to just edit our library
 # `pipenv install --dev`
+
 mensa-ukon = {path = ".", editable = true}
 pytest = "*"
