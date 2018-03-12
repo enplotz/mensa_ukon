@@ -3,19 +3,15 @@
 
 import logging
 from collections import namedtuple
-from uuid import uuid4
 
 import pendulum
 import telegram
 from pendulum.parsing.exceptions import ParserError
 from telegram import ChatAction
-from telegram import InlineQueryResultArticle
-from telegram import InputTextMessageContent
 from telegram import ParseMode
 from telegram.error import (Unauthorized, BadRequest, TimedOut, NetworkError, ChatMigrated, TelegramError)
 from telegram.ext import CommandHandler
 from telegram.ext import Filters
-from telegram.ext import InlineQueryHandler
 from telegram.ext import MessageHandler
 from telegram.ext import Updater
 from telegram.ext.dispatcher import run_async
@@ -75,6 +71,10 @@ class MensaBot(telegram.Bot):
         CMDShortcut('stamm', 'stammessen', 'giessberg', 'Show main meal'),
         CMDShortcut('wahl', 'wahlessen', 'giessberg', 'Show alternative meal'),
         CMDShortcut('vegi', 'vegetarisch', 'giessberg', 'Show vegetarian meal'),
+        # Upcoming 3 meals
+        CMDShortcut('teller', 'seezeit-teller', 'giessberg', 'Show Seezeit-Teller'),
+        CMDShortcut('kombi', 'kombinierbar', 'giessberg', 'Show KombinierBar'),
+        CMDShortcut('hinweg', 'hin&weg', 'giessberg', 'Show hin&weg'),
         CMDShortcut('eintopf', 'eintopf', 'giessberg', 'Show stew'),
         CMDShortcut('pasta', 'Al stuDente', 'giessberg', 'Show Pasta Bar'),
         CMDShortcut('abendessen', 'abendessen', 'giessberg', 'Show dinner'),
@@ -116,8 +116,7 @@ class MensaBot(telegram.Bot):
 
         self.commands = []
         self.mensa = Mensa(location=settings.CANTEEN)
-        with open('news.md') as f:
-            self._news_content = f.read()
+
 
         self.updater = Updater(settings.TOKEN, workers=settings.WORKERS)
         self.dp = self.updater.dispatcher
@@ -130,15 +129,27 @@ class MensaBot(telegram.Bot):
         # Custom command handlers
         self._add_bot_command('start', self._start, 'start bot')
         self._add_bot_command('help', self._bot_help, 'display help message')
-        self._add_bot_command('news', self._news, 'display bot news')
+
+        # A missing news file should not bring the bot to a crash
+        # so if there are no news, the command is not present.
+        # This might also happen if we run a script directly, so that the working directory is not
+        # as expected.
+        try:
+            with open('news.md') as f:
+                self._news_content = f.read()
+                self._add_bot_command('news', self._news, 'display bot news')
+        except IOError as e:
+            self.logger.warning(e)
+
         self._add_bot_command('mensa', lambda bot, update, args: self._mensa_plan(update, args=args),
                               self.DATE_HELP, pass_args=True)
         self._add_bot_command('mensaEN', lambda bot, update, args: self._mensa_plan(update, language=Language.en, args=args),
                               self.DATE_HELP, pass_args=True)
 
-        # shortcuts to direct offers
+        # shortcuts to direct offers for configured locations
         for cmd in self.SHORTCUTS:
-            self._add_meal_command(cmd)
+            if settings.CANTEEN == cmd.location:
+                self._add_meal_command(cmd)
 
         self.dp.add_error_handler(MensaBot._error)
         self.dp.add_handler(MessageHandler(Filters.command, self._unknown_command))
@@ -266,7 +277,7 @@ class MensaBot(telegram.Bot):
         # we want to print both commands for the bot, as well as commands to get meals
         return "\n".join(map(lambda c: '/' + c[0] + ' ' + c[1], self.commands)) \
                + '\n' \
-               + "\n".join(map(lambda c: '/' + c.command + ' ' + c.short_help, MensaBot.SHORTCUTS))
+               + "\n".join(map(lambda c: '/' + c.command + ' ' + c.short_help, [short for short in MensaBot.SHORTCUTS if settings.CANTEEN == short.location]))
 
     def _start(self, bot, update):
         chat_id = update.message.chat.id

@@ -59,7 +59,7 @@ class MensaBase(object):
 class Mensa(MensaBase):
 
     def __init__(self, location):
-        logger.debug(f'Canteen is {location}')
+        logger.info(f'Canteen is {location}')
         location = CANTEENS[location]
         self._endpoint = 'https://www.seezeit.com/essen/speiseplaene/{}/'.format(location.key)
         # friggin english endpoint is totally different :(

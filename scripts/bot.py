@@ -42,3 +42,5 @@ def run_bot(verbosity):
         logger.error(e, exc_info=show_exc)
         quit()
 
+if __name__ == '__main__':
+    run_bot()
