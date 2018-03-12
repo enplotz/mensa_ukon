@@ -35,7 +35,7 @@ loggers:
         handlers: [console, info_file_handler, error_file_handler]
         propagate: no
     telegram:
-        level: DEBUG
+        level: ERROR
 
 root:
     level: DEBUG

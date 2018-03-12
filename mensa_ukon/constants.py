@@ -5,14 +5,11 @@ from enum import Enum, unique
 from logging import DEBUG, INFO, WARN, ERROR
 from collections import namedtuple as n
 
-ENDPOINT = 'https://www.max-manager.de/daten-extern/seezeit/html/inc/ajax-php_konnektor.inc.php'
-
 # Some minimum headers we need to send in order to get a response
 HEADERS = {
     'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
     'Accept-Encoding': 'gzip, deflate'
 }
-
 
 @unique
 class Verbosity(Enum):
@@ -31,23 +28,17 @@ class Verbosity(Enum):
         return Verbosity(
             Verbosity(ERROR).value - (max(min(len(Verbosity.__members__) - 1, verbosity), 0) * 10)).value
 
+# Plan(Location, dict)
+FORMATTERS = OrderedDict({
+    'plain': lambda plan: '\033[1m# {}\033[0m\n\n'.format(plan.location.nice_name)
+                          + '\n'.join(['\033[1m{}: \033[0m {}'.format(meal[0], meal[1]) for meal in plan.meals.values()]),
+    # 'json': lambda entries: json.dumps(entries)
+})
 
-def _plain(canteens):
-    return '\n'.join(
-        ['# {}\n'.format(mensa.nice_name) + '\n'.join(['{}: {}'.format(pair[0], pair[1]) for name, pair in
-                                                       sorted(entries.items())]) for mensa, entries in
-         canteens])
-
-
-FORMATTERS = OrderedDict({'plain': lambda canteens: _plain(canteens),
-            'json': lambda entries: json.dumps(entries)})
 Format = n('Enum', FORMATTERS.keys())._make(FORMATTERS.keys())
-
-
 
 _languages = ['de', 'en']
 Language = n('Enum', _languages)._make(_languages)
-
 
 class Location(object):
     def __init__(self, key, nice_name, shortcut, order=None):
@@ -62,19 +53,12 @@ class Location(object):
     def __repr__(self):
         return self.__str__()
 
-DEFAULT_CANTEENS = ['giessberg', 'themenpark']
-
 CANTEENS = OrderedDict({
-    'giessberg': Location('mensa_giessberg', 'Uni', 'giessberg', {
-        'stammessen': 0, 'wahlessen': 1, 'vegetarisch': 2, 'beilagen': 3, 'eintopf': 4, 'al_studente': 5
-    }),
-    'themenpark': Location('themenpark_abendessen', 'Themenpark & Abendessen', 'themenpark', {
-        'wok': 2, 'grill': 0, 'bioessen': 1, 'abendessen': 3
-    }),
-    'htwg': Location('mensa_htwg', 'HTWG', 'htwg'),
-    'fn': Location('mensa_friedrichshafen', 'Friedrichshafen', 'fn'),
-    'weingarten': Location('mensa_weingarten', 'Weingarten', 'weingarten'),
-    'rave': Location('mensa_ravensburg', 'Ravensburg', 'rave'),
+    'giessberg': Location('mensa-giessberg', 'Uni Konstanz', 'giessberg'),
+    'htwg': Location('mensa-htwg', 'HTWG', 'htwg'),
+    'fn': Location('mensa-friedrichshafen', 'Friedrichshafen', 'fn'),
+    'weingarten': Location('mensa-weingarten', 'Weingarten', 'weingarten'),
+    'rave': Location('mensa-ravensburg', 'Ravensburg', 'rave'),
 })
 
 Canteen = n('Enum', CANTEENS.keys())._make(CANTEENS.keys())

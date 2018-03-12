@@ -23,7 +23,7 @@ class Emojize:
         (Emoji.COW, re.compile('[RCKB]')),
         (Emoji.PIG, re.compile('Sch|P')),
         (Emoji.FISH, re.compile('F')),
-        (Emoji.CHICKEN, re.compile('G')),
+        (Emoji.CHICKEN, re.compile('G|Po')),
         (Emoji.SEEDLING, re.compile('Vegan')),
         (Emoji.CHEESE, re.compile('Veg')),
         (Emoji.SHEEP, re.compile('L')),

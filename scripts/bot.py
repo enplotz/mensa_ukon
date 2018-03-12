@@ -3,8 +3,8 @@ import logging.config
 
 import click
 
-from mensa_ukon import version, settings
-from mensa_ukon.constants import Canteen, DEFAULT_CANTEENS, Verbosity
+from mensa_ukon import version
+from mensa_ukon.constants import Verbosity, Canteen
 from mensa_ukon.mensabot import MensaBot, BotError
 
 logger = logging.getLogger('MensaBot')
@@ -28,24 +28,19 @@ def _setup_logging(verbosity, default_level=logging.INFO,
 
 
 @click.command()
-@click.option('-c', '--canteen', type=click.Choice(Canteen), multiple=True, default=DEFAULT_CANTEENS, help='restrict output to specific canteen')
-@click.option('-e', '--env', help='**IGNORED** .env file location to load variables from')
 @click.option('-v', '--verbosity', count=True)
 @click.version_option(version=version.__version__)
-def run_bot(canteen, verbosity, env):
-    # Telegram bot framework setup
+def run_bot(verbosity):
     _setup_logging(verbosity)
     try:
-
-        if settings.TOKEN is None:
-            logger.exception('Missing required bot token. Quitting...')
-            quit()
-
-        logger.info('Starting bot for canteens: {}'.format(canteen))
-        # TODO sub-commands for webhook/polling
-        MensaBot(canteen).run()
+        bot = MensaBot()
+        # TODO simple plugins for different canteens
+        logger.info('Running bot.')
+        bot.run()
     except BotError as e:
         show_exc = logging.DEBUG == Verbosity.getLoglevelForCount(verbosity)
         logger.error(e, exc_info=show_exc)
         quit()
 
+if __name__ == '__main__':
+    run_bot()

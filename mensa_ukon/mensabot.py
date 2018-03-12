@@ -2,21 +2,16 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from collections import OrderedDict
 from collections import namedtuple
-from uuid import uuid4
 
 import pendulum
 import telegram
 from pendulum.parsing.exceptions import ParserError
 from telegram import ChatAction
-from telegram import InlineQueryResultArticle
-from telegram import InputTextMessageContent
 from telegram import ParseMode
 from telegram.error import (Unauthorized, BadRequest, TimedOut, NetworkError, ChatMigrated, TelegramError)
 from telegram.ext import CommandHandler
 from telegram.ext import Filters
-from telegram.ext import InlineQueryHandler
 from telegram.ext import MessageHandler
 from telegram.ext import Updater
 from telegram.ext.dispatcher import run_async
@@ -76,12 +71,16 @@ class MensaBot(telegram.Bot):
         CMDShortcut('stamm', 'stammessen', 'giessberg', 'Show main meal'),
         CMDShortcut('wahl', 'wahlessen', 'giessberg', 'Show alternative meal'),
         CMDShortcut('vegi', 'vegetarisch', 'giessberg', 'Show vegetarian meal'),
+        # Upcoming 3 meals
+        CMDShortcut('teller', 'seezeit-teller', 'giessberg', 'Show Seezeit-Teller'),
+        CMDShortcut('kombi', 'kombinierbar', 'giessberg', 'Show KombinierBar'),
+        CMDShortcut('hinweg', 'hin&weg', 'giessberg', 'Show hin&weg'),
         CMDShortcut('eintopf', 'eintopf', 'giessberg', 'Show stew'),
         CMDShortcut('pasta', 'Al stuDente', 'giessberg', 'Show Pasta Bar'),
-        CMDShortcut('abendessen', 'abendessen', 'themenpark', 'Show dinner'),
-        CMDShortcut('grill', 'grill', 'themenpark', 'Show grill'),
-        CMDShortcut('bio', 'bioessen', 'themenpark', 'Show bio'),
-        CMDShortcut('wok', 'wok', 'themenpark', 'Show wok'),
+        CMDShortcut('abendessen', 'abendessen', 'giessberg', 'Show dinner'),
+        CMDShortcut('grill', 'grill', 'giessberg', 'Show grill'),
+        CMDShortcut('bio', 'bioessen', 'giessberg', 'Show bio'),
+        CMDShortcut('wok', 'wok', 'giessberg', 'Show wok'),
     ]
 
     GREETING = 'Hello, human!\n' \
@@ -109,32 +108,48 @@ class MensaBot(telegram.Bot):
             raise BotConfigurationError('Missing bot token.')
         return settings.TOKEN
 
-    def __init__(self, canteens):
+    def __init__(self):
         # TODO fix settings module needing import before MensaBot init...
         super(MensaBot, self).__init__(MensaBot._token())
         self.logger = logging.getLogger(__name__)
         self.logger.debug('Setting up Bot...')
 
         self.commands = []
-        self.mensa = Mensa(canteens)
+        self.mensa = Mensa(location=settings.CANTEEN)
+
+
         self.updater = Updater(settings.TOKEN, workers=settings.WORKERS)
         self.dp = self.updater.dispatcher
 
         #self.dp.add_handler(CommandHandler('inline', self._inline_test))
         #self.dp.add_handler(CallbackQueryHandler(self._inline_selected))
 
-        self.dp.add_handler(InlineQueryHandler(self._inlinequery))
+        # self.dp.add_handler(InlineQueryHandler(self._inlinequery))
 
         # Custom command handlers
         self._add_bot_command('start', self._start, 'start bot')
         self._add_bot_command('help', self._bot_help, 'display help message')
-        self._add_bot_command('news', MensaBot._news, 'display bot news')
+
+        # A missing news file should not bring the bot to a crash
+        # so if there are no news, the command is not present.
+        # This might also happen if we run a script directly, so that the working directory is not
+        # as expected.
+        try:
+            with open('news.md') as f:
+                self._news_content = f.read()
+                self._add_bot_command('news', self._news, 'display bot news')
+        except IOError as e:
+            self.logger.warning(e)
+
         self._add_bot_command('mensa', lambda bot, update, args: self._mensa_plan(update, args=args),
                               self.DATE_HELP, pass_args=True)
+        self._add_bot_command('mensaEN', lambda bot, update, args: self._mensa_plan(update, language=Language.en, args=args),
+                              self.DATE_HELP, pass_args=True)
 
-        # shortcuts to direct offers
+        # shortcuts to direct offers for configured locations
         for cmd in self.SHORTCUTS:
-            self._add_meal_command(cmd)
+            if settings.CANTEEN == cmd.location:
+                self._add_meal_command(cmd)
 
         self.dp.add_error_handler(MensaBot._error)
         self.dp.add_handler(MessageHandler(Filters.command, self._unknown_command))
@@ -204,75 +219,65 @@ class MensaBot(telegram.Bot):
 
     def _add_meal_command(self, cmd_shortcut):
         for s in [cmd_shortcut.command, cmd_shortcut.command.capitalize()]:
-            self.dp.add_handler(CommandHandler(s,
-                                               lambda bot, update, args: self._mensa_plan(update,
-                                                                                         meal=cmd_shortcut.meal,
-                                                                                         args=args),
+            self.dp.add_handler(CommandHandler(s, lambda bot, update, args: self._mensa_plan(update, filter_meal=cmd_shortcut.meal, args=args),
                                                pass_args=True))
 
     @staticmethod
-    def _format_date_relative(date):
+    def _format_date_relative(date, language=Language.de):
+        is_de = language == Language.de
         if date.is_today():
-            return 'Heute'
+            return 'Heute' if is_de else 'Today'
         elif date.is_tomorrow():
-            return 'Morgen'
+            return 'Morgen' if is_de else 'Today'
         else:
-            return date.diff_for_humans(locale='de')
+            loc = 'de' if is_de else 'en'
+            return date.diff_for_humans(locale=loc)
 
     # except pendulum.parsing.exceptions.ParserError as e:
     @staticmethod
     def _parse_datum(date_string : str, fallback_func=None) -> pendulum.date:
         if date_string in ['today', 'heute', 'Today', 'Heute']:
-            return pendulum.today(settings.TIMEZONE)
+            return pendulum.today(tz=settings.TIMEZONE)
         if date_string in ['tomorrow', 'morgen', 'Tomorrow', 'Morgen']:
-            return pendulum.tomorrow(settings.TIMEZONE)
+            return pendulum.tomorrow(tz=settings.TIMEZONE)
 
         # the fallback function is only used when it's defined and parsing fails
         # its resulting value will still be "validated" later
         try:
-            date = pendulum.parse(date_string)
+            date = pendulum.parse(date_string, tz=settings.TIMEZONE)
         except pendulum.parsing.exceptions.ParserError as e:
             if fallback_func:
-                date = fallback_func(settings.TIMEZONE)
+                date = fallback_func(tz=settings.TIMEZONE)
             else:
                 raise e
 
         # we currently do not support lookup for past dates in bot query parameters
-        today = pendulum.today(settings.TIMEZONE)
+        today = pendulum.today(tz=settings.TIMEZONE)
         if today > date:
             raise pendulum.parsing.exceptions.ParserError('No past dates allowed.')
         return date
 
     @staticmethod
-    def _sort_meals(location, meals):
-        # sort by custom sort-order or meal name if no order is present
-        ordered_meals = OrderedDict(sorted(meals.items(), key=lambda t: location.order[t[0]] if location.order else t[0]))
-        return ordered_meals
-
-    @staticmethod
-    def _str_for_single_meal(meals: dict, meal: str) -> str:
-        for loc in meals:
-            try:
-                return '*{0}:* {1}'.format(*loc[1][Mensa._normalize_key(meal)])
-            except KeyError:
-                # meal not present at location
-                print(meal)
-                print(meals)
-                pass
+    def _str_for_single_meal(bot, meals: dict, meal: str) -> str:
+        try:
+            return '*{0}:* {1}'.format(*meals[Mensa._normalize_key(meal)])
+        except KeyError:
+            # meal not present
+            bot.logger.error(meal)
+            bot.logger.error(meals)
+            pass
         raise NoMealError(meal)
 
-    @staticmethod
-    def _news(bot, update):
-        '''Prints news for the bot.'''
+    def _news(self, bot, update):
+        """Prints news for the bot."""
         chat_id = update.message.chat.id
-        with open('news.md') as f:
-            msg_async(bot=bot, chat_id=chat_id, text=f.read(), parse_mode=ParseMode.MARKDOWN)
+        msg_async(bot=bot, chat_id=chat_id, text=self._news_content, parse_mode=ParseMode.MARKDOWN)
 
     def _print_commands(self):
         # we want to print both commands for the bot, as well as commands to get meals
         return "\n".join(map(lambda c: '/' + c[0] + ' ' + c[1], self.commands)) \
                + '\n' \
-               + "\n".join(map(lambda c: '/' + c.command + ' ' + c.short_help, MensaBot.SHORTCUTS))
+               + "\n".join(map(lambda c: '/' + c.command + ' ' + c.short_help, [short for short in MensaBot.SHORTCUTS if settings.CANTEEN == short.location]))
 
     def _start(self, bot, update):
         chat_id = update.message.chat.id
@@ -304,68 +309,64 @@ class MensaBot(telegram.Bot):
     #                         chat_id=query.message.chat_id,
     #                         message_id=query.message.message_id)
 
-    def _inlinequery(self, bot, update):
-        query = update.inline_query.query
-        self.logger.debug('Got query: %s', query)
+    # def _inlinequery(self, bot, update):
+    #     query = update.inline_query.query
+    #     self.logger.debug('Got query: %s', query)
+    #
+    #     # TODO assume for now that the query contains only the date string
+    #     # later on, we could try to intelligently parse the query and derive intents
+    #     # e.g., certain meal types (meat, vegan, vegetarian) at certain dates, or a specific meal (e.g., stammessen)
+    #     try:
+    #         date = self._parse_datum(query, fallback_func=pendulum.today)
+    #     except pendulum.parsing.exceptions.ParserError:
+    #         date = pendulum.today(settings.TIMEZONE)
+    #
+    #     meals = self.mensa.retrieve(date, Language.de)
+    #
+    #     results = list()
+    #     for location in meals:
+    #         for meal in location[1].items():
+    #             meal = meal[1]
+    #
+    #             # thumb_url='https://www.seezeit.com/fileadmin/template/images/icons/speiseplan/Veg.png'
+    #             results.append(InlineQueryResultArticle(
+    #                 id=uuid4(),
+    #                 title=meal[0],
+    #                 description=meal[1],
+    #                 input_message_content=InputTextMessageContent(
+    #                     '🕛 *{}*\n*{}*: {}'.format(
+    #                                                MensaBot._format_date_relative(date).title(), meal[0], meal[1]),
+    #                     parse_mode=ParseMode.MARKDOWN)))
+    #
+    #     if len(results) > 0:
+    #         results.insert(0, InlineQueryResultArticle(
+    #             id=uuid4(),
+    #             title='Return the whole list of meals',
+    #             input_message_content=InputTextMessageContent(self._msg_text_for_meals(date, meals),
+    #                                                           parse_mode=ParseMode.MARKDOWN)
+    #         ))
+    #     else:
+    #         results.append(InlineQueryResultArticle(
+    #             id=uuid4(),
+    #             title='😭 No meals',
+    #             description='There are no meals for specified date: {}.'.format(MensaBot._format_date_relative(date).title()),
+    #             input_message_content=InputTextMessageContent(self._msg_text_for_meals(date, meals),
+    #                                                           parse_mode=ParseMode.MARKDOWN)
+    #         ))
+    #     update.inline_query.answer(results)
 
-        # TODO assume for now that the query contains only the date string
-        # later on, we could try to intelligently parse the query and derive intents
-        # e.g., certain meal types (meat, vegan, vegetarian) at certain dates, or a specific meal (e.g., stammessen)
-        try:
-            date = self._parse_datum(query, fallback_func=pendulum.today)
-        except pendulum.parsing.exceptions.ParserError:
-            date = pendulum.today(settings.TIMEZONE)
+    def _msg_text_for_meals(self, date, plan, language=Language.de):
+        msg_text = f'🍴 {plan.location.nice_name} – 🕛 *' + MensaBot._format_date_relative(date, language).title() + '*\n\n'
 
-        meals = self.mensa.retrieve(date, Language.de)
-
-        results = list()
-        for location in meals:
-            for meal in location[1].items():
-                meal = meal[1]
-
-                # thumb_url='https://www.seezeit.com/fileadmin/template/images/icons/speiseplan/Veg.png'
-                results.append(InlineQueryResultArticle(
-                    id=uuid4(),
-                    title=meal[0],
-                    description=meal[1],
-                    input_message_content=InputTextMessageContent(
-                        '🕛 *{}*\n*{}*: {}'.format(
-                                                   MensaBot._format_date_relative(date).title(), meal[0], meal[1]),
-                        parse_mode=ParseMode.MARKDOWN)))
-
-        if len(results) > 0:
-            results.insert(0, InlineQueryResultArticle(
-                id=uuid4(),
-                title='Return the whole list of meals',
-                input_message_content=InputTextMessageContent(self._msg_text_for_meals(date, meals),
-                                                              parse_mode=ParseMode.MARKDOWN)
-            ))
+        if plan.meals:
+            msg_text += ''.join(['*{0}:* {1}\n'.format(l[0], l[1]) for l in plan.meals.values()]) + '\n'
         else:
-            results.append(InlineQueryResultArticle(
-                id=uuid4(),
-                title='😭 No meals',
-                description='There are no meals for specified date: {}.'.format(MensaBot._format_date_relative(date).title()),
-                input_message_content=InputTextMessageContent(self._msg_text_for_meals(date, meals),
-                                                              parse_mode=ParseMode.MARKDOWN)
-            ))
-        update.inline_query.answer(results)
-
-    def _msg_text_for_meals(self, date, meals, meal=None):
-        msg_text = '🕛 *' + MensaBot._format_date_relative(date).title() + '*\n'
-        if meal:
-            msg_text += self._str_for_single_meal(meals, meal)
-        else:
-            for loc_meals in meals:
-                if len(loc_meals[1]) > 0:
-                    msg_text += '\n🍴 {0}:\n'.format(
-                        loc_meals[0].nice_name) + '\n'.join(
-                        ['*{0}:* {1}'.format(*l[1]) for l in
-                         self._sort_meals(loc_meals[0], loc_meals[1]).items()]) + '\n'
-                else:
-                    msg_text += 'No meals found at {0} 😭\n'.format(loc_meals[0].nice_name)
+            date_str = date.format('%A, %d. %B %Y', locale='de')
+            # TODO full localization
+            msg_text += ('Keine Speisen gefunden für' if language == Language.de else 'No meals found for') + f' {date_str} 😭\n'
         return msg_text
 
-    def _mensa_plan(self, update, meal=None, args=None):
+    def _mensa_plan(self, update, language=Language.de, filter_meal=None, args=None):
         # TODO simplify method...
         # /mensa [today|tomorrow|date]
         # currently, we only support dates* in the args parameter
@@ -387,11 +388,12 @@ class MensaBot(telegram.Bot):
             date = pendulum.today(settings.TIMEZONE)
 
         try:
-            self.logger.debug('Filter for: %s', meal)
-            # [(Location, Dict)]
-            meals = self.mensa.retrieve(date, Language.de, meals=[meal] if meal else None)
+            if filter_meal:
+                self.logger.debug('Filter for: %s', filter_meal)
+            # dict of meals
+            plan = self.mensa.retrieve(date, language=language, filter_meal=filter_meal)
 
-            msg_text = self._msg_text_for_meals(date, meals, meal)
+            msg_text = self._msg_text_for_meals(date, plan, language=language)
             try:
                 msg_async(bot=self, chat_id=chat_id, text=msg_text,
                                 parse_mode=ParseMode.MARKDOWN,
@@ -404,7 +406,3 @@ class MensaBot(telegram.Bot):
         except NoMealError as nme:
             self.logger.error(nme.message)
             msg_async(bot=self, chat_id=chat_id, text=nme.message)
-
-
-
-

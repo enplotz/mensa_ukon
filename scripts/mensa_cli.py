@@ -3,12 +3,12 @@
 
 import logging
 import sys
-from datetime import datetime
+import pendulum
 
 import click
 from click_datetime import Datetime
 from mensa_ukon import version
-from mensa_ukon.constants import Language, Canteen, Verbosity, Format, FORMATTERS, DEFAULT_CANTEENS
+from mensa_ukon.constants import Language, Verbosity, Format, FORMATTERS, Canteen
 from mensa_ukon.mensa import Mensa
 
 logger = logging.getLogger(__name__)
@@ -24,36 +24,36 @@ def _setup_logging(verbosity):
 
 
 @click.command()
-@click.option('-d', '--date', type=Datetime(format='%Y-%m-%d'), default=datetime.today,
+@click.option('-d', '--date', type=Datetime(format='%Y-%m-%d'), default=pendulum.today,
               help='date for the plan (default: today; format: Y-m-d)')
 @click.option('-l', '--language', type=click.Choice(list(Language)), default=Language.de, help='language of the descriptions')
-@click.option('-c', '--canteen', type=click.Choice(Canteen), multiple=True, default=DEFAULT_CANTEENS, help='restrict output to specific canteen')
+@click.option('-c', '--canteen', type=click.Choice(Canteen), multiple=False, default='giessberg', help='restrict output to specific canteen')
 @click.option('-f', '--format', type=click.Choice(list(Format)), default=Format.plain, help='output format')
 @click.option('-v', '--verbosity', count=True)
-@click.argument('meals', nargs=-1)
+@click.argument('filter_meal', required=False)
 @click.version_option(version=version.__version__)
-def meals(date, language, canteen, format, verbosity, meals):
+def meals(date, language, canteen, format, verbosity, filter_meal):
     """This script retrieves specified meals from the canteen plan of the University of Konstanz."""
 
     _setup_logging(verbosity)
 
     logger.debug('Date: {}'.format(date))
     logger.debug('Language: {}'.format(language))
-    logger.debug('Canteens: {}'.format(canteen))
+    logger.debug('Canteen: {}'.format(canteen))
     logger.debug('Format: {}'.format(format))
     logger.debug('Verbosity: {}'.format(verbosity))
-    logger.debug('Meals: {}'.format(meals))
+    logger.debug('Meal filter: {}'.format(filter_meal))
 
     m = Mensa(canteen)
 
-    logger.info('retrieving meals...')
-    canteens = m.retrieve(date, language, meals)
+    logger.info('Retrieving meals...')
+    plan = m.retrieve(date, language, filter_meal)
 
-    l = len(canteens)
-    if canteens and l > 0:
-        logger.debug('found {0} meal{1}!'.format(l, '' if l == 1 else 's'))
-        click.echo(FORMATTERS[format](canteens))
+    if plan.meals:
+        l = len(plan.meals)
+        logger.debug('Found {0} meal{1}!'.format(l, '' if l == 1 else 's'))
+        click.echo(FORMATTERS[format](plan))
         sys.exit(0)
     else:
-        click.echo('No meals found for day {0}.'.format(date))
+        click.echo('No meals found for date {0}.'.format(date.format('%Y-%m-%d')))
         sys.exit(0)
