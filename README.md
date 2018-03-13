@@ -9,7 +9,7 @@ Below you will find instructions on how to run/deploy the *bot* (it's primarily 
 
 ## ⚙ Install
 
-The library/bot depends on a couple of packages and is only tested with Python `>=3.5`.
+The library/bot depends on a couple of packages and is only tested with Python `>=3.6`.
 Currently the project uses [Pipenv](https://docs.pipenv.org) to manage dependencies (so, e.g. Heroku is able to install them automatically).
 I'm currently in the process of streamlining installation and sync of requirements between `Pipfile` and `setup.py` (so that it can be distributed as a library). For now it is "synced" manually.
 

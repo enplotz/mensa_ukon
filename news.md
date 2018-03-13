@@ -1,5 +1,7 @@
-📰  News
+*📰  News*
+
 
 - *[NEW]:* rudimentary **english** support via /mensaEN only
-
-- Now gets data from new website!
+- *[NEW]:* support for new meal types, try it: /hinweg, /teller, /kombi
+ 
+- *[IMPROVED]:* should be more resilient against broken HTML on the mensa website

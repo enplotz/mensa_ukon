@@ -68,10 +68,6 @@ class MensaBot(telegram.Bot):
 
     CMDShortcut = namedtuple('CMDShortcut', ['command', 'meal', 'location', 'short_help'])
     SHORTCUTS = [
-        CMDShortcut('stamm', 'stammessen', 'giessberg', 'Show main meal'),
-        CMDShortcut('wahl', 'wahlessen', 'giessberg', 'Show alternative meal'),
-        CMDShortcut('vegi', 'vegetarisch', 'giessberg', 'Show vegetarian meal'),
-        # Upcoming 3 meals
         CMDShortcut('teller', 'seezeit-teller', 'giessberg', 'Show Seezeit-Teller'),
         CMDShortcut('kombi', 'kombinierbar', 'giessberg', 'Show KombinierBar'),
         CMDShortcut('hinweg', 'hin&weg', 'giessberg', 'Show hin&weg'),

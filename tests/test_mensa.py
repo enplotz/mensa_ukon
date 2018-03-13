@@ -1,7 +1,21 @@
+import os, pprint, collections, pendulum
 from mensa_ukon import Mensa
+from mensa_ukon.constants import Language
 
+from requests_html import HTMLSession, AsyncHTMLSession, HTML
+from requests_file import FileAdapter
+
+session = HTMLSession()
+session.mount('file://', FileAdapter())
+
+
+def get():
+    path = os.path.sep.join((os.path.dirname(os.path.abspath(__file__)), 'giessberg.html'))
+    url = f'file://{path}'
+    return session.get(url)
 
 class TestMensa:
+
 
     def test_normalize_keys(self):
 
@@ -47,3 +61,30 @@ class TestMensa:
     def test_clean_text(self):
         assert Mensa._clean_text('\tThe quick  brown fox   , jumps over (1,2,2a,b, 9) the lazy dog.  ') == \
                'The quick brown fox, jumps over the lazy dog.'
+
+
+    def test_find_meals_file(self):
+        # 10 days
+        # 10 meal types
+        r = get()
+        assert r.status_code == 200
+        m = Mensa(location='giessberg')
+        days = m._retrieve_plan(html=r.html.html)
+        assert 10 == len(days)
+        for day  in days:
+            l =  len(day.keys())
+            assert 10 == l
+
+    def test_find_meals_online(self):
+        m = Mensa(location='giessberg')
+        days = m._retrieve_plan()
+        assert 10 == len(days)
+        for day  in days:
+            l =  len(day.keys())
+            assert 10 == l
+
+    # TODO fix test: either no meals (for weekend, holidays etc.), or 10
+    # def test_retrieve(self):
+    #     m = Mensa(location='giessberg')
+    #     meals = m._retrieve(get().html, pendulum.today(), filter_meal=None, language=Language.de, emojize=True)
+    #     assert 10 == len(meals.meals)

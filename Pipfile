@@ -12,11 +12,15 @@ python_version = "3.6"
 
 [packages]
 
+python-telegram-bot = "~=9.0"
 requests-html = "*"
-# Specify packages that are needed for a _specific_ instance of a running bot (e.g. in 'scripts/...').
-# In `setup.py` all library dependencies will be located. This way, `Pipfile.lock` can pin mensa-ukon's transitive deps
-# for a running bot.
-# Just use `pipenv install`
+lxml = "*"
+html5lib = "*"
+CacheControl = "*"
+click = "*"
+click-datetime = "*"
+click-log = "*"
+pendulum = "*"
 mensa-ukon = {path = "."}
 
 
@@ -25,4 +29,5 @@ mensa-ukon = {path = "."}
 # `pipenv install --dev`
 
 mensa-ukon = {path = ".", editable = true}
-pytest = "*"
+requests-file = ">=1.4.0"
+pytest = ">=2.8.0"
