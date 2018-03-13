@@ -66,6 +66,7 @@ def exc(bot, ex):
 
 class MensaBot(telegram.Bot):
 
+
     CMDShortcut = namedtuple('CMDShortcut', ['command', 'meal', 'location', 'short_help'])
     SHORTCUTS = [
         CMDShortcut('teller', 'seezeit-teller', 'giessberg', 'Show Seezeit-Teller'),
@@ -224,7 +225,7 @@ class MensaBot(telegram.Bot):
         if date.is_today():
             return 'Heute' if is_de else 'Today'
         elif date.is_tomorrow():
-            return 'Morgen' if is_de else 'Today'
+            return 'Morgen' if is_de else 'Tomorrow'
         else:
             loc = 'de' if is_de else 'en'
             return date.diff_for_humans(locale=loc)
@@ -232,9 +233,10 @@ class MensaBot(telegram.Bot):
     # except pendulum.parsing.exceptions.ParserError as e:
     @staticmethod
     def _parse_datum(date_string : str, fallback_func=None) -> pendulum.date:
-        if date_string in ['today', 'heute', 'Today', 'Heute']:
+        d = date_string.lower().strip()
+        if d in ['today', 'heute']:
             return pendulum.today(tz=settings.TIMEZONE)
-        if date_string in ['tomorrow', 'morgen', 'Tomorrow', 'Morgen']:
+        if d in ['tomorrow', 'morgen']:
             return pendulum.tomorrow(tz=settings.TIMEZONE)
 
         # the fallback function is only used when it's defined and parsing fails
@@ -386,6 +388,13 @@ class MensaBot(telegram.Bot):
         try:
             if filter_meal:
                 self.logger.debug('Filter for: %s', filter_meal)
+
+            # experimental feature: overwrite language when given english instructions
+            if len(args) > 0:
+                date_string = args[0].lower()
+                if date_string in ['today', 'tomorrow']:
+                    language = Language.en
+
             # dict of meals
             plan = self.mensa.retrieve(date, language=language, filter_meal=filter_meal)
 

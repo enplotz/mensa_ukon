@@ -15,8 +15,8 @@ python_version = "3.6"
 python-telegram-bot = "~=9.0"
 requests-html = "*"
 lxml = "*"
-html5lib = "*"
-CacheControl = "*"
+"html5lib" = "*"
+cachecontrol = "*"
 click = "*"
 click-datetime = "*"
 click-log = "*"
@@ -25,9 +25,9 @@ mensa-ukon = {path = "."}
 
 
 [dev-packages]
+
 # In dev mode we want to be able to just edit our library
 # `pipenv install --dev`
-
 mensa-ukon = {path = ".", editable = true}
 requests-file = ">=1.4.0"
 pytest = ">=2.8.0"
