@@ -138,7 +138,7 @@ class Mensa(MensaBase):
 
         day_idx = self._get_requested_day_index(date_tabs, datum, language)
 
-        if not day_idx:
+        if day_idx is None:
             # no meals for specified day
             logger.debug('No meal for specified day')
             return Plan(self.location, None)
