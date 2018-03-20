@@ -16,9 +16,13 @@ CANTEEN = os.environ.get('PTB_CANTEEN', default='giessberg')
 USE_POLLING = os.environ.get('PTB_USE_POLLING', 'True') == 'True'
 WORKERS = int(os.environ.get('PTB_WORKERS', 2))
 
-# Webhook
+# Webhook for own deployment
 URL = os.environ.get('PTB_WEBHOOK_URL')
-LISTEN_IP = os.environ.get('PTB_WEBHOOK_LISTEN_IP')
-LISTEN_PORT = int(os.environ.get('PTB_WEBHOOK_LISTEN_PORT', '8443'))
-CERT = os.environ.get('PTB_CERT')
-CERT_KEY = os.environ.get('PTB_CERT_KEY')
+LISTEN_IP = os.environ.get('PTB_WEBHOOK_LISTEN_IP', '0.0.0.0')
+LISTEN_PORT = int(os.environ.get('PORT', '8443'))
+CERT = os.environ.get('PTB_CERT', None)
+CERT_KEY = os.environ.get('PTB_CERT_KEY', None)
+
+# Deployment specific variables for Heroku
+IS_HEROKU = 'DYNO' in os.environ
+HEROKU_APP_NAME = os.environ.get('HEROKU_APP_NAME')

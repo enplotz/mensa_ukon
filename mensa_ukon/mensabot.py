@@ -188,23 +188,30 @@ class MensaBot(telegram.Bot):
             self.updater.start_polling()
             self.updater.idle()
         else:
-            webhook_url = 'https://%s:%s/%s' % (settings.URL, settings.LISTEN_PORT, settings.TOKEN)
-            self.logger.info('Bot running with webhook on %s', webhook_url)
-            # You can also set the webhook yourself (via cURL) or delete it sending an empty url.
-            # Note that for self-signed certificates, you also have to send the .pem certificate file
-            # to the Telegram API.
+            if settings.IS_HEROKU:
+                # https://github.com/python-telegram-bot/python-telegram-bot/wiki/Webhooks#heroku
+                webhook_url = f'https://{settings.HEROKU_APP_NAME}.herokuapp.com/{settings.TOKEN}'
+                self.updater.start_webhook(listen=settings.LISTEN_IP, port=settings.LISTEN_PORT, url_path=settings.TOKEN)
+                self.setWebhook(url=webhook_url)
+            else:
+                webhook_url = f'https://{settings.URL}:{settings.LISTEN_PORT}/{settings.TOKEN}'
+                self.updater.start_webhook(
+                    listen=settings.LISTEN_IP,
+                    port=settings.LISTEN_PORT,
+                    url_path=settings.TOKEN,
+                    cert=settings.CERT,
+                    key=settings.CERT_KEY,
+                    webhook_url=webhook_url)
+                self.setWebhook(url=webhook_url, certificate=open(settings.CERT, 'rb'))
+                # You can also set the webhook yourself (via cURL) or delete it sending an empty url.
+                # Note that for self-signed certificates, you also have to send the .pem certificate file
+                # to the Telegram API.
+                # Actually start our bot
+            # don't leak token into logs
+            self.logger.info('Bot running with webhook on %s', webhook_url.replace(settings.TOKEN, '***TOKEN_OMITTED***'))
+            self.updater.idle()
 
-            # Send the certificate and set the webhook url
-            self.bot.setWebhook(webhook_url=webhook_url, certificate=open(settings.CERT, 'rb'))
 
-            # Actually start our bot
-            self.updater.start_webhook(
-                listen=settings.LISTEN_IP,
-                port=settings.LISTEN_PORT,
-                url_path=settings.TOKEN,
-                cert=settings.CERT,
-                key=settings.CERT_KEY,
-                webhook_url=webhook_url)
 
     def _add_bot_command(self, command_text, command, help_info, pass_args=False):
         # the german auto-correct tends to capitalize the first word after the slash...

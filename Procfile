@@ -1,1 +1,1 @@
-bot: mensa_bot
+web: mensa_bot

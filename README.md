@@ -112,6 +112,7 @@ Then install [heroku-config](https://github.com/xavdid/heroku-config) plugin and
 ```
 $ heroku plugins:install heroku-config
 $ heroku config:push
+$ heroku labs:enable runtime-dyno-metadata -a YOUR_APP_NAME
 ```
 
 Now your app should be ready for the bot code:
