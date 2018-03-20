@@ -56,6 +56,11 @@ logging_config = dict(
             'level': 'WARN',
             'propagate': False
         },
+        'mensa_ukon.mensabot': {
+            'handlers': ['h'],
+            'level': 'WARN',
+            'propagate': False
+        },
         'scripts.mensa_cli': {
             'handlers': ['h'],
             'level': 'WARN',
@@ -81,6 +86,10 @@ logging_config = dict(
         'telegram.ext.dispatcher': {
             'handlers': ['h'],
             'level': 'WARN',
+        },
+        'JobQueue': {
+            'handlers': ['h'],
+            'level': 'WARN',
         }
     }
 )
@@ -92,6 +101,7 @@ def setup_logging(verbosity):
     logging_config['loggers']['scripts.mensa_cli']['level'] = name
     logging_config['loggers']['scripts.bot']['level'] = name
     logging_config['loggers']['mensa_ukon.mensa']['level'] = name
+    logging_config['loggers']['mensa_ukon.mensabot']['level'] = name
     dictConfig(logging_config)
-    logging.getLogger(__name__).info('Verbosity has set the logging level to %s', name)
+    logging.getLogger(__name__).debug('Verbosity has set the logging level to %s', name)
 

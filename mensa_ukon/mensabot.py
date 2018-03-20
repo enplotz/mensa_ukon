@@ -109,7 +109,7 @@ class MensaBot(telegram.Bot):
         # TODO fix settings module needing import before MensaBot init...
         super(MensaBot, self).__init__(MensaBot._token())
         self.logger = logging.getLogger(__name__)
-        self.logger.debug('Setting up Bot...')
+        self.logger.debug('Setting up bot...')
 
         self.commands = []
         self.mensa = Mensa(location=settings.CANTEEN)
@@ -174,7 +174,7 @@ class MensaBot(telegram.Bot):
             pass
 
     def _unknown_command(self, bot, update):
-        bot.logger.info('Received unknown command: %s', update.message)
+        self.logger.info('Received unknown command: %s', update.message)
         msg_async(bot=bot, chat_id=update.message.chat.id, text='Sorry, I do not understand that command.\n')
         self._bot_help(bot, update)
 

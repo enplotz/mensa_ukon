@@ -33,6 +33,7 @@ class MensaBase(object):
         self.session = HTMLSession()
         self.session.mount('https://', adapter)
         self.logger = logging.getLogger(__name__)
+        self.logger.debug('Setting up Mensa')
 
     def retrieve(self, datum=None, language=None, meals=None, emojize=None) -> Plan:
         # overwrite this
