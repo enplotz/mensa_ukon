@@ -1,27 +1,21 @@
 #! /usr/bin/env python
 
 
-import logging
 import sys
 import pendulum
 
 import click
 from click_datetime import Datetime
 from mensa_ukon import version
-from mensa_ukon.constants import Language, Verbosity, Format, FORMATTERS, Canteen
+from mensa_ukon import setup_logging
+from mensa_ukon.constants import Language, Format, FORMATTERS, Canteen
 from mensa_ukon.mensa import Mensa
 
+
+import logging
+logging.getLogger(__name__).addHandler(logging.NullHandler())
+
 logger = logging.getLogger(__name__)
-
-
-def _setup_logging(verbosity):
-    h = logging.StreamHandler()
-    h.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
-    logger.addHandler(h)
-    level = Verbosity.getLoglevelForCount(verbosity)
-    logger.setLevel(level)
-    logger.info('Verbosity has set the logging level to %s', logging.getLevelName(level))
-
 
 @click.command()
 @click.option('-d', '--date', type=Datetime(format='%Y-%m-%d'), default=pendulum.today,
@@ -35,7 +29,7 @@ def _setup_logging(verbosity):
 def meals(date, language, canteen, format, verbosity, filter_meal):
     """This script retrieves specified meals from the canteen plan of the University of Konstanz."""
 
-    _setup_logging(verbosity)
+    setup_logging(verbosity)
 
     logger.debug('Date: {}'.format(date))
     logger.debug('Language: {}'.format(language))

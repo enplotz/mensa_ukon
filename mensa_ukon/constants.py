@@ -1,8 +1,6 @@
 #! /usr/bin/env python
 import json
 from collections import OrderedDict
-from enum import Enum, unique
-from logging import DEBUG, INFO, WARN, ERROR
 from collections import namedtuple as n
 
 # Some minimum headers we need to send in order to get a response
@@ -10,23 +8,6 @@ HEADERS = {
     'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
     'Accept-Encoding': 'gzip, deflate'
 }
-
-@unique
-class Verbosity(Enum):
-    error = ERROR
-    warn = WARN
-    info = INFO
-    debug = DEBUG
-
-    def __str__(self):
-        return str(self.value)
-
-    @classmethod
-    def getLoglevelForCount(cls, verbosity):
-        '''Gets the log level for a specific count of -v switches from click.'''
-        # ERROR currently has the highest numerical value we use, so just use it for now
-        return Verbosity(
-            Verbosity(ERROR).value - (max(min(len(Verbosity.__members__) - 1, verbosity), 0) * 10)).value
 
 # Plan(Location, dict)
 FORMATTERS = OrderedDict({

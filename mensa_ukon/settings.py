@@ -5,7 +5,6 @@ import os
 
 # General
 TOKEN = os.environ.get('PTB_TELEGRAM_BOT_TOKEN')
-LOG_CONF = os.environ.get('PTB_LOG_CONF')
 NOTIFY_CHATS = list(filter(lambda i : i is not None,
                       map(lambda s : None if s == '' else int(s),
                           os.environ.get('PTB_NOTIFY_CHAT_IDS', "").split(','))))

@@ -1,9 +1,9 @@
 #! /usr/bin/env python
 
 """Mensa class"""
-import logging
 import re
 import pendulum
+import logging
 
 from collections import namedtuple, OrderedDict
 from requests_html import HTMLSession
@@ -15,10 +15,6 @@ from cachecontrol.heuristics import ExpiresAfter
 from mensa_ukon.emojize import Emojize
 from mensa_ukon.constants import Language, CANTEENS
 from mensa_ukon.settings import TIMEZONE
-
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
-
 
 
 # Location, dict
@@ -36,6 +32,7 @@ class MensaBase(object):
         adapter = CacheControlAdapter(heuristic=ExpiresAfter(days=1))
         self.session = HTMLSession()
         self.session.mount('https://', adapter)
+        self.logger = logging.getLogger(__name__)
 
     def retrieve(self, datum=None, language=None, meals=None, emojize=None) -> Plan:
         # overwrite this
@@ -48,7 +45,7 @@ class MensaBase(object):
         resp = self.session.get(self.endpoints[language])
         code = resp.status_code
         if code != 200:
-            logger.warning(f'Non-200 status: {code}')
+            self.logger.warning(f'Non-200 status: {code}')
         return resp.html
 
     @staticmethod
@@ -78,7 +75,6 @@ class MensaBase(object):
 class Mensa(MensaBase):
 
     def __init__(self, location):
-        logger.info(f'Canteen is {location}')
         location = CANTEENS[location]
 
         endpoints = { Language.de : 'https://www.seezeit.com/essen/speiseplaene/{}/'.format(location.key),
@@ -106,11 +102,13 @@ class Mensa(MensaBase):
         tabs = soup.find_all('div', id=re.compile("^tab\d+"))
         num_tabs = len(tabs)
         if num_tabs != 10:
-            logger.error(f"Could not find 10 tabs: {num_tabs}")
+            self.logger.error(f"Could not find 10 tabs: {num_tabs}")
 
         days = []
         for t in tabs:
             meals = t.find_all('div', class_='speiseplanTagKat')
+            num_meals = len(meals)
+            self.logger.debug(f"Found {num_meals} meal divs")
             day = OrderedDict()
             for m in meals:
                 title = MensaBase._strip_additives(m.find('div', class_='title').text)
@@ -118,7 +116,9 @@ class Mensa(MensaBase):
 
                 normalized_category = self._normalize_key(category)
                 clean_text = self._text_replace(self._clean_text(title.strip()))
-                day[normalized_category] = (category, Emojize.replace(clean_text) if emojize else clean_text)
+                output_text = Emojize.replace(clean_text) if emojize else clean_text
+                day[normalized_category] = (category, output_text)
+                self.logger.debug(f"Found {normalized_category} = ({category}, {output_text})")
 
             days.append(day)
         return days
@@ -127,7 +127,7 @@ class Mensa(MensaBase):
     def _retrieve(self, html, datum, language, filter_meal, emojize) -> Plan:
         # TODO report invalid date, e.g. /mensa 2018-02-29 to ValueError (invalid date for month)
 
-        logger.debug(f'Retrieving meals for {datum} from {self.location}')
+        self.logger.debug(f'Retrieving meals for {datum} from {self.location}')
 
         # Meals are shown for two weeks
         # current and next week
@@ -137,13 +137,14 @@ class Mensa(MensaBase):
         date_tabs = html.xpath('//div[@class="tx-speiseplan"]/div[@class="tabs"]/a')
 
         day_idx = self._get_requested_day_index(date_tabs, datum, language)
+        self.logger.debug(f"Day index: {day_idx}")
 
         if day_idx is None:
             # no meals for specified day
-            logger.debug('No meal for specified day')
+            self.logger.debug('No meal for specified day')
             return Plan(self.location, None)
 
-        logger.debug('Meals for date {}'.format(datum))
+        self.logger.debug('Meals for date {}'.format(datum))
 
         meals = self._retrieve_plan(html=html.html, emojize=emojize)[day_idx]
 
