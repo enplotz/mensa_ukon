@@ -4,7 +4,7 @@ import logging.config
 import click
 
 from mensa_ukon import version
-from mensa_ukon.constants import Verbosity, Canteen
+from mensa_ukon.constants import Verbosity
 from mensa_ukon.mensabot import MensaBot, BotError
 
 logger = logging.getLogger('MensaBot')

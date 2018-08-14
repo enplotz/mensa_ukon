@@ -17,7 +17,6 @@ class Emoji(object):
 
 class Emojize:
 
-    IN_PARENS = re.compile('\(([\w ,]*)\)')
     # List of possible meals, comma separated.
     TOKENS = [
         (Emoji.COW, re.compile('[RCKB]')),
@@ -30,32 +29,14 @@ class Emojize:
     ]
 
     @classmethod
-    def _repl_all_emoji(cls, match_object) -> str:
-        """
-        Used to replace shorthands with emoji
-        :param match_object: match object from a regex match
-        :return:
-        """
-        emoji = []
-        in_parens = match_object.group(1)
-        if in_parens:
-            for group in in_parens.split(','):
-                for e, regex in cls.TOKENS:
-                    if regex.fullmatch(group.strip()):
-                        emoji.append(e)
-                        break
-                else:
-                    # we have to put back our extracted string, which we could not
-                    # match with an Emoji character
-                    emoji.append(group.strip())
-        return '(' + ", ".join(emoji) + ')'
+    def replace_type(cls, type: str) -> str:
+        for e, regex in cls.TOKENS:
+            if regex.fullmatch(type):
+                return e
+        return ''
 
-    @classmethod
-    def replace(cls, text: str) -> str:
-        """Replaces shorthands of meal types with emojis.
-        :param text: description of a meal
-        :return: description with substituted text shorthands as emoji characters
-        """
-        logger.debug('Replacing text %s', text)
-        return cls.IN_PARENS.sub(cls._repl_all_emoji, text)
-
+    @staticmethod
+    def as_str(emojis):
+        if len(emojis) == 0:
+            return ''
+        return ' ' + ' '.join(emojis)

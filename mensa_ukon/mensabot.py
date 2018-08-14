@@ -19,6 +19,7 @@ from telegram.ext.dispatcher import run_async
 from mensa_ukon import Mensa
 from mensa_ukon import settings
 from mensa_ukon.constants import Language
+from mensa_ukon.emojize import Emojize
 
 
 class BotError(Exception):
@@ -140,7 +141,7 @@ class MensaBot(telegram.Bot):
 
         self._add_bot_command('mensa', lambda bot, update, args: self._mensa_plan(update, args=args),
                               self.DATE_HELP, pass_args=True)
-        self._add_bot_command('mensaEN', lambda bot, update, args: self._mensa_plan(update, language=Language.en, args=args),
+        self._add_bot_command('mensaEN', lambda bot, update, args: self._mensa_plan(update, language=Language.EN, args=args),
                               self.DATE_HELP, pass_args=True)
 
         # shortcuts to direct offers for configured locations
@@ -220,11 +221,12 @@ class MensaBot(telegram.Bot):
                                                pass_args=True))
 
     @staticmethod
-    def _format_date_relative(date, language=Language.de):
-        is_de = language == Language.de
-        if date.is_today():
+    def _format_date_relative(date, language=Language.DE):
+        is_de = language == Language.DE
+        today = pendulum.today(tz=settings.TIMEZONE)
+        if date == today:
             return 'Heute' if is_de else 'Today'
-        elif date.is_tomorrow():
+        elif date.diff(today).in_days() == 1:
             return 'Morgen' if is_de else 'Tomorrow'
         else:
             loc = 'de' if is_de else 'en'
@@ -353,18 +355,19 @@ class MensaBot(telegram.Bot):
     #         ))
     #     update.inline_query.answer(results)
 
-    def _msg_text_for_meals(self, date, plan, language=Language.de):
+    def _msg_text_for_meals(self, date, plan, language=Language.DE):
         msg_text = f'🍴 {plan.location.nice_name} – 🕛 *' + MensaBot._format_date_relative(date, language).title() + '*\n\n'
 
         if plan.meals:
-            msg_text += ''.join(['*{0}:* {1}\n'.format(l[0], l[1]) for l in plan.meals.values()]) + '\n'
+            msg_text += ''.join(['*{0}{1}:* {2}\n'.format(l[0], Emojize.as_str(l[2]), l[1]) for l in plan.meals.values()]) + '\n'
         else:
-            date_str = date.format('%A, %d. %B %Y', locale='de')
+            date_str = date.format('dddd DD MMMM YYYY', locale=language)
             # TODO full localization
-            msg_text += ('Keine Speisen gefunden für' if language == Language.de else 'No meals found for') + f' {date_str} 😭\n'
+            msg_text += ('Keine Speisen gefunden für' if language == Language.DE else 'No meals found for') \
+                        + f' {date_str} 😭\n'
         return msg_text
 
-    def _mensa_plan(self, update, language=Language.de, filter_meal=None, args=None):
+    def _mensa_plan(self, update, language=Language.DE, filter_meal=None, args=None):
         # TODO simplify method...
         # /mensa [today|tomorrow|date]
         # currently, we only support dates* in the args parameter
@@ -393,7 +396,7 @@ class MensaBot(telegram.Bot):
             if len(args) > 0:
                 date_string = args[0].lower()
                 if date_string in ['today', 'tomorrow']:
-                    language = Language.en
+                    language = Language.EN
 
             # dict of meals
             plan = self.mensa.retrieve(date, language=language, filter_meal=filter_meal)

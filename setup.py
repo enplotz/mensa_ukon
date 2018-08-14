@@ -44,7 +44,8 @@ with codecs.open('README.md', 'r', 'utf-8') as readme_f, \
                             'click',
                             'click-datetime',
                             'click-log',
-                            'pendulum'],
+                            'pendulum',
+                            'aenum'],
           include_package_data=True,
           classifiers=[
               'Intended Audience :: Developers',

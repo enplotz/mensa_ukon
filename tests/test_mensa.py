@@ -1,8 +1,7 @@
-import os, pprint, collections, pendulum
+import os
 from mensa_ukon import Mensa
-from mensa_ukon.constants import Language
 
-from requests_html import HTMLSession, AsyncHTMLSession, HTML
+from requests_html import HTMLSession
 from requests_file import FileAdapter
 
 session = HTMLSession()
@@ -14,8 +13,8 @@ def get():
     url = f'file://{path}'
     return session.get(url)
 
-class TestMensa:
 
+class TestMensa:
 
     def test_normalize_keys(self):
 
@@ -62,7 +61,6 @@ class TestMensa:
         assert Mensa._clean_text('\tThe quick  brown fox   , jumps over (1,2,2a,b, 9) the lazy dog.  ') == \
                'The quick brown fox, jumps over the lazy dog.'
 
-
     def test_find_meals_file(self):
         # 10 days
         # 10 meal types
@@ -73,7 +71,7 @@ class TestMensa:
         assert 10 == len(days)
         for day  in days:
             l =  len(day.keys())
-            assert 10 == l
+            assert 11 == l
 
     def test_find_meals_online(self):
         m = Mensa(location='giessberg')
@@ -81,7 +79,8 @@ class TestMensa:
         assert 10 == len(days)
         for day  in days:
             l =  len(day.keys())
-            assert 10 == l
+            print(day.keys())
+            assert 11 == l
 
     # TODO fix test: either no meals (for weekend, holidays etc.), or 10
     # def test_retrieve(self):
