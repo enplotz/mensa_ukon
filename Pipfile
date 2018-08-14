@@ -1,17 +1,13 @@
 [[source]]
-
 url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
-
-[requires]
-
-python_version = "3.6"
-
+#[requires]
+#python_version = ">=3.6"
+# why is this not working... :(
 
 [packages]
-
 python-telegram-bot = "~=9.0"
 requests-html = "*"
 lxml = "*"
@@ -21,13 +17,12 @@ click = "*"
 click-datetime = "*"
 click-log = "*"
 pendulum = "*"
+aenum = '*'
 mensa-ukon = {path = "."}
 
-
 [dev-packages]
-
 # In dev mode we want to be able to just edit our library
 # `pipenv install --dev`
-mensa-ukon = {path = ".", editable = true}
+mensa-ukon = {editable = true, path = "."}
 requests-file = ">=1.4.0"
 pytest = ">=2.8.0"

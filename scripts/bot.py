@@ -4,25 +4,8 @@ import logging.config
 import click
 
 from mensa_ukon import version, setup_logging, Verbosity
+from mensa_ukon.constants import Verbosity
 from mensa_ukon.mensabot import MensaBot, BotError
-
-
-# def _setup_logging(verbosity, default_level=logging.INFO,
-#                    default_format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'):
-#     """ Setup logging for the bot.
-#     :param default_level: default level
-#     :param default_format: default format
-#     """
-#
-#     if verbosity > 0:
-#         level = Verbosity.getLoglevelForCount(verbosity)
-#         default_level = level
-#         logger.setLevel(default_level)
-#         logger.info('Overwriting default log level from command line to {}'.format(logging.getLevelName(level)))
-#         # FIXME correct logging for all libraries and bot...
-#
-#     logging.basicConfig(level=default_level, format=default_format)
-#     logger.info('Using default logging parameters.')
 
 @click.command()
 @click.option('-v', '--verbosity', count=True)
