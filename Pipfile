@@ -3,9 +3,11 @@ url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
-#[requires]
+[requires]
+python_version = "3.7"
 #python_version = ">=3.6"
 # why is this not working... :(
+
 
 [packages]
 python-telegram-bot = "~=9.0"
