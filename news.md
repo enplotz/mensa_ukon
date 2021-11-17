@@ -1,7 +1,6 @@
 *📰  News*
 
+- *[IMPROVED]:* handling of "better animal welfare" icon instead of outputting the confusing beef icon
+- *[IMPROVED]:* under the hood improvements
 
-- *[NEW]:* rudimentary **english** support via /mensaEN only
-- *[NEW]:* support for new meal types, try it: /hinweg, /teller, /kombi
- 
-- *[IMPROVED]:* should be more resilient against broken HTML on the mensa website
+- *[FIXED]:* English menu via `/mensaEN`

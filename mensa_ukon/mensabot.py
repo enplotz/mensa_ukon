@@ -112,7 +112,8 @@ class MensaBot(telegram.Bot):
         self.logger = logging.getLogger(__name__)
         self.logger.debug('Setting up bot...')
 
-        self.commands = []
+        # remember commands for easy help text
+        self.my_commands = []
         self.mensa = Mensa(location=settings.CANTEEN)
 
 
@@ -220,7 +221,7 @@ class MensaBot(telegram.Bot):
         # command = lambda bot, update, args: command(update, args=args)
         for c_text in [command_text, command_text.capitalize()]:
             self.dp.add_handler(CommandHandler(c_text, command, pass_args=pass_args))
-        self.commands.append((command_text, help_info))
+        self.my_commands.append((command_text, help_info))
 
     def _add_meal_command(self, cmd_shortcut):
         for s in [cmd_shortcut.command, cmd_shortcut.command.capitalize()]:
@@ -282,7 +283,7 @@ class MensaBot(telegram.Bot):
 
     def _print_commands(self):
         # we want to print both commands for the bot, as well as commands to get meals
-        return "\n".join(map(lambda c: '/' + c[0] + ' ' + c[1], self.commands)) \
+        return "\n".join(map(lambda c: '/' + c[0] + ' ' + c[1], self.my_commands)) \
                + '\n' \
                + "\n".join(map(lambda c: '/' + c.command + ' ' + c.short_help, [short for short in MensaBot.SHORTCUTS if settings.CANTEEN == short.location]))
 
