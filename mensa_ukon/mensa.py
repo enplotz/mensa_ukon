@@ -45,7 +45,9 @@ class MensaBase(object):
 
     # Helper method to make a language-specific request
     def do_request(self, language=Language.DE):
-        resp = self.session.get(self.endpoints[language.name])
+        url = self.endpoints[language.name]
+        logger.debug(f'Retrieving url: {url}')
+        resp = self.session.get(url)
         code = resp.status_code
         if code != 200:
             logger.warning(f'Non-200 status: {code}')
@@ -90,26 +92,32 @@ class Mensa(MensaBase):
 
     @staticmethod
     def _get_requested_day_index(date_tabs, datum, language):
-        locale =  language
+        # Locale is unused until the English website stops using the German date format...
+        # TODO: revisit this issue
+        # locale =  language
         logger.debug('Datum: %s', datum)
-        datum_fmt = datum.format(language.date_fmt, locale=locale.name)
 
-        logger.debug('Datum format: %s', datum_fmt)
-        for i, t in enumerate(date_tabs):
-            text = str(t.full_text).strip()
-            if text == datum_fmt:
-                return i
+        for locale in [Language.DE, Language.EN]:
+            datum_fmt = datum.format(language.date_fmt, locale=locale.name)
+            logger.debug('Datum format: %s', datum_fmt)
+            for i, t in enumerate(date_tabs):
+                text = str(t.full_text).strip()
+                if text == datum_fmt:
+                    return i
         logger.debug('Day not found.')
+
         return None
 
-    def _retrieve_plan(self, html=None, language=Language.DE, emojize=False) -> [OrderedDict]:
+    # TODO: remove emojise param
+    def _retrieve_plan(self, html=None, language=Language.DE, emojize=False) -> list[OrderedDict]:
         if not html:
             html = self.do_request(language).html
 
         tabs = list(Mensa._tabs(html))
         num_tabs = len(tabs)
-        if num_tabs != 10:
-            logger.error(f"Could not find 10 tabs: {num_tabs}")
+        # one tab for each day open
+        if num_tabs != self.location.days_open:
+            logger.error(f"Could not find {self.location.days_open} tabs: {num_tabs}")
 
         days = []
         for t in tabs:

@@ -13,25 +13,31 @@ class Emoji(object):
     CHEESE = u'\U0001F9C0'
     SEEDLING = u'\U0001F331'
     SHEEP = u'\U0001F411'
+    GAME = u'\U0001F98C'
+    STAR = u'\U00002B50'
 
 
 class Emojize:
 
     # List of possible meals, comma separated.
+    # The new mensa website uses simple CSS classes to display icons
+    # So we do not need regexs anymore :)
     TOKENS = [
-        (Emoji.COW, re.compile('[RCKB]')),
-        (Emoji.PIG, re.compile('Sch|P')),
-        (Emoji.FISH, re.compile('F')),
-        (Emoji.CHICKEN, re.compile('G|Po')),
-        (Emoji.SEEDLING, re.compile('Vegan')),
-        (Emoji.CHEESE, re.compile('Veg')),
-        (Emoji.SHEEP, re.compile('L')),
+        (Emoji.CHEESE, 'Veg'),
+        (Emoji.SEEDLING, 'Vegan'),
+        (Emoji.PIG, 'Sch'),
+        (Emoji.COW, 'R'),
+        (Emoji.CHICKEN, 'G'),
+        (Emoji.SHEEP, 'L'),
+        (Emoji.GAME, 'W'),
+        (Emoji.FISH, 'F'),
+        (Emoji.STAR, 'B')
     ]
 
     @classmethod
     def replace_type(cls, type: str) -> str:
-        for e, regex in cls.TOKENS:
-            if regex.fullmatch(type):
+        for e, css_class in cls.TOKENS:
+            if type is not None and css_class in type:
                 return e
         return ''
 

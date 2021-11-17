@@ -44,15 +44,16 @@ Format = n('Enum', FORMATTERS.keys())._make(FORMATTERS.keys())
 # Mon. 13.08.
 class Language(Enum, init='date_fmt'):
     DE = 'dd DD.MM.'
-    EN = 'ddd. DD.MM.'
+    EN = 'ddd DD.MM.'
 
 
 class Location(object):
-    def __init__(self, key, nice_name, shortcut, order=None):
+    def __init__(self, key, nice_name, shortcut, order=None, days_open=10):
         self.key = key
         self.nice_name = nice_name
         self.shortcut = shortcut
         self.order = order
+        self.days_open = days_open
 
     def __str__(self):
         return 'Location("%s", "%s", "%s")' % (self.key, self.nice_name, self.shortcut)
@@ -61,7 +62,7 @@ class Location(object):
         return self.__str__()
 
 CANTEENS = OrderedDict({
-    'giessberg': Location('mensa-giessberg', 'Uni Konstanz', 'giessberg'),
+    'giessberg': Location('mensa-giessberg', 'Uni Konstanz', 'giessberg', days_open=12),
     'htwg': Location('mensa-htwg', 'HTWG', 'htwg'),
     'fn': Location('mensa-friedrichshafen', 'Friedrichshafen', 'fn'),
     'weingarten': Location('mensa-weingarten', 'Weingarten', 'weingarten'),
