@@ -14,7 +14,7 @@ class Emoji(object):
     SEEDLING = u'\U0001F331'
     SHEEP = u'\U0001F411'
     GAME = u'\U0001F98C'
-    STAR = u'\U00002B50'
+    FARMER = u'\U0001F9D1\U0000200D\U0001F33E'
 
 
 class Emojize:
@@ -31,7 +31,7 @@ class Emojize:
         (Emoji.SHEEP, 'L'),
         (Emoji.GAME, 'W'),
         (Emoji.FISH, 'F'),
-        (Emoji.STAR, 'B')
+        (Emoji.FARMER, 'B')
     ]
 
     @classmethod
