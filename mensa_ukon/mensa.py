@@ -3,17 +3,16 @@
 """Mensa class"""
 import logging
 import re
+from collections import OrderedDict, namedtuple
+
 import pendulum
-
-from collections import namedtuple, OrderedDict
-from requests_html import HTMLSession
 from bs4 import BeautifulSoup
-
 from cachecontrol import CacheControlAdapter
 from cachecontrol.heuristics import ExpiresAfter
+from requests_html import HTMLSession
 
+from mensa_ukon.constants import CANTEENS, Language
 from mensa_ukon.emojize import Emojize
-from mensa_ukon.constants import Language, CANTEENS
 from mensa_ukon.settings import TIMEZONE
 
 logger = logging.getLogger(__name__)
@@ -146,7 +145,7 @@ class Mensa(MensaBase):
             for i in icon.get('class', []):
                 if i != 'speiseplanTagKatIcon':
                     e = Emojize.replace_type(i.strip())
-                    if e is not '':
+                    if e != '':
                         emoji.append(e)
         return emoji
 
@@ -171,7 +170,7 @@ class Mensa(MensaBase):
 
         # Meals are shown for two weeks
         # current and next week
-        # [Mo-Fr] [Mo-Fr]
+        # [Mo-Fr/Sa] [Mo-Fr/Sa]
 
         # TODO convert to BS4
         date_tabs = html.xpath('//div[@class="tx-speiseplan"]/div[@class="tabs"]/a')
@@ -189,9 +188,9 @@ class Mensa(MensaBase):
 
         if filter_meal:
             filter_meal_key = self._normalize_key(filter_meal)
-            meals = { k:v for k,v in  meals.items() if k == filter_meal_key }
+            meals = { k:v for k,v in  meals.items() if filter_meal_key in k }
 
-        return Plan(self.location, meals)
+        return Plan(self.location, meals if len(meals) > 0 else None)
 
     def retrieve(self, datum=None, language=Language.DE, filter_meal=None, emojize=True) -> Plan:
         if not datum:

@@ -6,18 +6,13 @@ from collections import namedtuple
 
 import pendulum
 import telegram
-from pendulum.parsing.exceptions import ParserError
-from telegram import ChatAction
-from telegram import ParseMode
-from telegram.error import (Unauthorized, BadRequest, TimedOut, NetworkError, ChatMigrated, TelegramError)
-from telegram.ext import CommandHandler
-from telegram.ext import Filters
-from telegram.ext import MessageHandler
-from telegram.ext import Updater
-from telegram.ext.dispatcher import run_async
+from telegram import ChatAction, Update
+from telegram.error import (ChatMigrated, Conflict, InvalidToken, NetworkError,
+                            TelegramError, TimedOut, Unauthorized)
+from telegram.ext import (CallbackContext, CommandHandler, Filters,
+                          MessageHandler, Updater)
 
-from mensa_ukon import Mensa
-from mensa_ukon import settings
+from mensa_ukon import Mensa, settings
 from mensa_ukon.constants import Language
 from mensa_ukon.emojize import Emojize
 
@@ -50,21 +45,6 @@ class BotConfigurationError(BotError):
         super(BotConfigurationError, self).__init__('Error configuring bot: \'{}\'.'.format(msg))
 
 
-@run_async
-def msg_async(bot, *args, **kwargs):
-    kwargs['timeout'] = 2
-    try:
-        bot.sendMessage(*args, **kwargs)
-    except Exception as e:
-        exc(bot, e)
-
-
-def exc(bot, ex):
-    """Exception handling."""
-    # TODO use logger from MensaBot instance and not Telegram bot instance
-    bot.logger.exception(ex)
-
-
 class MensaBot(telegram.Bot):
 
 
@@ -81,15 +61,14 @@ class MensaBot(telegram.Bot):
         CMDShortcut('wok', 'wok', 'giessberg', 'Show wok'),
     ]
 
-    GREETING = 'Hello, human!\n' \
-               'I am a bot to retrieve the culinary offerings of Uni Konstanz\' canteen. ' \
-               'I can understand several date formats like \'today\', \'tomorrow\' and ones ' \
-               'formatted like \'YYYY-MM-DD\'.\n' \
-               'Please forgive me if I sometimes do not work, you see, ' \
-               'I\'m quite new and still adjusting to this world :).\n\n' \
-               'The /news command will show you what new stuff I can do!\n\n'
+    GREETING = ('🤖Hello, human!\n'
+                'I am a bot to retrieve the culinary offerings of Uni Konstanz\' canteen. '
+                'I can understand several date formats like \'today\', \'tomorrow\' and ones '
+                'formatted like \'YYYY-MM-DD\'.\n\n'
+                'The /news command will show you what new stuff I can do!'
+            )
 
-    INTRO_HELP = 'It looks like you may need help.\n'
+    INTRO_HELP = '🤖 It looks like you may need help.\n'
     INTRO_COMMANDS = 'Here are my *commands*:\n'
 
     DATE_HELP = '\[<date>] get what offerings are waiting for you at the specified date ' \
@@ -116,8 +95,7 @@ class MensaBot(telegram.Bot):
         self.my_commands = []
         self.mensa = Mensa(location=settings.CANTEEN)
 
-
-        self.updater = Updater(settings.TOKEN, workers=settings.WORKERS)
+        self.updater = Updater(settings.TOKEN, workers=settings.WORKERS, use_context=True)
         self.dp = self.updater.dispatcher
 
         #self.dp.add_handler(CommandHandler('inline', self._inline_test))
@@ -140,9 +118,9 @@ class MensaBot(telegram.Bot):
         except IOError as e:
             self.logger.warning(e)
 
-        self._add_bot_command('mensa', lambda bot, update, args: self._mensa_plan(update, args=args),
+        self._add_bot_command('mensa', lambda update, context: self._mensa_plan(update, args=context.args),
                               self.DATE_HELP, pass_args=True)
-        self._add_bot_command('mensaEN', lambda bot, update, args: self._mensa_plan(update, language=Language.EN, args=args),
+        self._add_bot_command('mensaEN', lambda update, context: self._mensa_plan(update, language=Language.EN, args=context.args),
                               self.DATE_HELP, pass_args=True)
 
         # shortcuts to direct offers for configured locations
@@ -154,36 +132,40 @@ class MensaBot(telegram.Bot):
         self.dp.add_handler(MessageHandler(Filters.command, self._unknown_command))
 
     @staticmethod
-    def _error(bot, update, error):
+    def _error(update: Update, context: CallbackContext):
         """ Error handling."""
-        bot.logger.error("An error (%s) occurred: %s", type(error), error.message)
         try:
-            raise error
+            raise context.error
+        except TimedOut:
+            context.bot.logger.error("Request to Telegram API took too long: %s", context.error)
+            update.effective_message.reply_text('Unfortunately, it seems that Telegram is not responding to me :(', quote=True)
+        except NetworkError:
+            context.bot.logger.error("Error communicating with Telegram API: %s", context.error)
+        except Conflict:
+            context.bot.logger.error("Long poll/webhook conflict: %s", context.error)
+        except InvalidToken:
+            context.bot.logger.error("Token is no longer valid: %s", context.error)
+        except ChatMigrated:
+            context.bot.logger.error("Chat was migrated: %s", context.error)
+        except TelegramError:
+            context.bot.logger.error("There was an error while communicating with Telegram: %s", context.error)
+            update.effective_message.reply_text('Unfortunately, there was an error communicating with Telegram :(', quote=True)
         except Unauthorized:
             # I guess since we are not keeping track of conversations ourselves, we cannot remove
             # the bot from the conversation list?
-            pass
-        # TODO handle remaining errors...
-        except BadRequest:
-            pass
-        except TimedOut:
-            pass
-        except NetworkError:
-            pass
-        except ChatMigrated as e:
-            pass
-        except TelegramError:
-            pass
+            context.bot.logger.error("Bot has insufficient rights: %s", context.error)
+            update.effective_message.reply_text('Unfortunately, Telegram does not allow me to do that!', quote=True)
+        except Exception as e:
+            context.bot.logger.error("Some other error (%s) occurred: %s", type(e), e)
+            update.effective_message.reply_text('Unfortunately, there was an error 😵. Please try again later or file an Issue on GitHub.', quote=True)
+            raise e
 
-    def _unknown_command(self, bot, update):
-        self.logger.info('Received unknown command: %s', update.message)
-        msg_async(bot=bot, chat_id=update.message.chat.id, text='Sorry, I do not understand that command.\n')
-        self._bot_help(bot, update)
 
-    def _msg_async(self, chat_id, text):
-        msg_async(bot=self, chat_id=chat_id, text=text,
-                                          parse_mode=ParseMode.MARKDOWN,
-                                          disable_web_page_preview=True)
+    def _unknown_command(self, update: Update, context: CallbackContext):
+        self.logger.info('Received unknown command: %s', update.effective_message.text)
+        update.effective_message.reply_text('Sorry, I do not understand this command.', quote=True)
+
+
     def run(self):
         if settings.USE_POLLING:
             self.logger.info('Bot running with polling enabled.')
@@ -193,8 +175,8 @@ class MensaBot(telegram.Bot):
             if settings.IS_HEROKU:
                 # https://github.com/python-telegram-bot/python-telegram-bot/wiki/Webhooks#heroku
                 webhook_url = f'https://{settings.HEROKU_APP_NAME}.herokuapp.com/{settings.TOKEN}'
-                self.updater.start_webhook(listen=settings.LISTEN_IP, port=settings.LISTEN_PORT, url_path=settings.TOKEN)
-                self.setWebhook(url=webhook_url)
+                self.updater.start_webhook(listen=settings.LISTEN_IP, port=settings.LISTEN_PORT, url_path=settings.TOKEN, webhook_url=webhook_url)
+                # self.setWebhook(url=webhook_url)
             else:
                 webhook_url = f'https://{settings.URL}:{settings.LISTEN_PORT}/{settings.TOKEN}'
                 self.updater.start_webhook(
@@ -214,19 +196,19 @@ class MensaBot(telegram.Bot):
             self.updater.idle()
 
 
-
     def _add_bot_command(self, command_text, command, help_info, pass_args=False):
         # the german auto-correct tends to capitalize the first word after the slash...
         # so we will add both variants internally bot not report them in the help menu
         # command = lambda bot, update, args: command(update, args=args)
         for c_text in [command_text, command_text.capitalize()]:
-            self.dp.add_handler(CommandHandler(c_text, command, pass_args=pass_args))
+            self.dp.add_handler(CommandHandler(c_text, command, run_async=True, pass_args=pass_args))
         self.my_commands.append((command_text, help_info))
+
 
     def _add_meal_command(self, cmd_shortcut):
         for s in [cmd_shortcut.command, cmd_shortcut.command.capitalize()]:
-            self.dp.add_handler(CommandHandler(s, lambda bot, update, args: self._mensa_plan(update, filter_meal=cmd_shortcut.meal, args=args),
-                                               pass_args=True))
+            self.dp.add_handler(CommandHandler(s, lambda update, context: self._mensa_plan(update, filter_meal=cmd_shortcut.meal, args=context.args), run_async=True))
+
 
     @staticmethod
     def _format_date_relative(date, language=Language.DE):
@@ -240,7 +222,7 @@ class MensaBot(telegram.Bot):
             loc = 'de' if is_de else 'en'
             return date.diff_for_humans(locale=loc)
 
-    # except pendulum.parsing.exceptions.ParserError as e:
+
     @staticmethod
     def _parse_datum(date_string : str, fallback_func=None) -> pendulum.date:
         d = date_string.lower().strip()
@@ -265,6 +247,7 @@ class MensaBot(telegram.Bot):
             raise pendulum.parsing.exceptions.ParserError('No past dates allowed.')
         return date
 
+
     @staticmethod
     def _str_for_single_meal(bot, meals: dict, meal: str) -> str:
         try:
@@ -276,10 +259,12 @@ class MensaBot(telegram.Bot):
             pass
         raise NoMealError(meal)
 
-    def _news(self, bot, update):
+
+    def _news(self, update: Update, context: CallbackContext):
         """Prints news for the bot."""
-        chat_id = update.message.chat.id
-        msg_async(bot=bot, chat_id=chat_id, text=self._news_content, parse_mode=ParseMode.MARKDOWN)
+        self.logger.debug('Received /start command')
+        update.effective_message.reply_markdown(text=self._news_content)
+
 
     def _print_commands(self):
         # we want to print both commands for the bot, as well as commands to get meals
@@ -287,19 +272,23 @@ class MensaBot(telegram.Bot):
                + '\n' \
                + "\n".join(map(lambda c: '/' + c.command + ' ' + c.short_help, [short for short in MensaBot.SHORTCUTS if settings.CANTEEN == short.location]))
 
-    def _start(self, bot, update):
-        chat_id = update.message.chat.id
-        bot.sendMessage(chat_id=chat_id, text=self.GREETING + '\n' + self.INTRO_COMMANDS + self._print_commands() + self.EXAMPLES,
-                        parse_mode=ParseMode.MARKDOWN,
-                        disable_web_page_preview=True)
 
-    def _bot_help(self, bot, update):
+    def _start(self, update: Update, context: CallbackContext):
+        self.logger.debug('Received /start command')
+        update.effective_message.reply_markdown(
+            text=self.GREETING + '\n\n' + self.INTRO_COMMANDS + self._print_commands() + self.EXAMPLES,
+            disable_web_page_preview=True
+            )
+
+
+    def _bot_help(self, update: Update, context: CallbackContext):
         """Prints help text"""
-        chat_id = update.message.chat.id
-        msg_async(bot=bot, chat_id=chat_id,
-                        text=MensaBot.INTRO_HELP + MensaBot.INTRO_COMMANDS + self._print_commands() + MensaBot.EXAMPLES,
-                        parse_mode=ParseMode.MARKDOWN,
-                        disable_web_page_preview=True)
+        self.logger.debug('Received /help command')
+        update.effective_message.reply_markdown(
+            text=MensaBot.INTRO_HELP + '\n' + MensaBot.INTRO_COMMANDS + self._print_commands() + MensaBot.EXAMPLES, 
+            disable_web_page_preview=True
+            )
+
 
     # TODO custom keyboard with emoji as meals
 
@@ -365,33 +354,41 @@ class MensaBot(telegram.Bot):
 
     def _msg_text_for_meals(self, date, plan, language=Language.DE):
         msg_text = f'🍴 {plan.location.nice_name} – 🕛 *' + MensaBot._format_date_relative(date, language).title() + '*\n\n'
-
-        if plan.meals:
+        self.logger.debug('Preparing menu...')
+        if plan.meals is not None:
             msg_text += ''.join(['*{0}{1}:* {2}\n'.format(l[0], Emojize.as_str(l[2]), l[1]) for l in plan.meals.values()]) + '\n'
         else:
-            date_str = date.format('dddd DD MMMM YYYY', locale=language)
             # TODO full localization
+            date_str = date.format('dddd, DD. MMMM YYYY', locale=language.name)
             msg_text += ('Keine Speisen gefunden für' if language == Language.DE else 'No meals found for') \
                         + f' {date_str} 😭\n'
         return msg_text
+
 
     def _mensa_plan(self, update, language=Language.DE, filter_meal=None, args=None):
         # TODO simplify method...
         # /mensa [today|tomorrow|date]
         # currently, we only support dates* in the args parameter
-        chat_id = update.message.chat.id
+
         if len(args) > 1:
-            self._msg_async(chat_id, text='Give me a single date to fetch meals for.')
+            update.effective_message.reply_markdown(
+                text='Give me a single date to fetch meals for.',
+                disable_web_page_preview=True
+            )
             return
 
-        self.sendChatAction(chat_id=chat_id, action=ChatAction.TYPING)
+        self.sendChatAction(chat_id=update.effective_message.chat_id, action=ChatAction.TYPING)
 
         if len(args) > 0:
+            self.logger.debug(args)
             try:
                 date = MensaBot._parse_datum(args[0])
-            except pendulum.parsing.exceptions.ParserError:
-                self.logger.info('Got unknown date format: %s', args[0])
-                self._msg_async(chat_id=chat_id, text='Sorry, I do not understand the date you gave me: {}'.format(args[0]))
+            except pendulum.parsing.exceptions.ParserError as pe:
+                self.logger.info('Got unknown date or date format: %s', args[0])
+                update.effective_message.reply_markdown(
+                    text='Sorry, I do not understand the date you gave me: {}'.format(args[0]),
+                    disable_web_page_preview=True
+                )
                 return
         else:
             date = pendulum.today(settings.TIMEZONE)
@@ -408,17 +405,24 @@ class MensaBot(telegram.Bot):
 
             # dict of meals
             plan = self.mensa.retrieve(date, language=language, filter_meal=filter_meal)
+            self.logger.debug('Retrieved meal plan.')
 
             msg_text = self._msg_text_for_meals(date, plan, language=language)
             try:
-                msg_async(bot=self, chat_id=chat_id, text=msg_text,
-                                parse_mode=ParseMode.MARKDOWN,
-                                disable_web_page_preview=True)
+                update.effective_message.reply_markdown(
+                    text=msg_text,
+                    disable_web_page_preview=True
+                )
             except Exception as e:
-                exc(self, e)
+                self.logger.exception(e)
         except (ValueError, ArgumentError) as e:
-            self._msg_async(chat_id=chat_id, text='\n*Usage:* /mensa [<date>]\ne.g. /mensa 2017-01-01')
-            exc(self, e)
+            update.effective_message.reply_markdown(
+                text='\n*Usage:* /mensa [<date>]\ne.g. /mensa 2017-01-01',
+                disable_web_page_preview=True
+            )
         except NoMealError as nme:
             self.logger.error(nme.message)
-            msg_async(bot=self, chat_id=chat_id, text=nme.message)
+            update.effective_message.reply_markdown(
+                text=nme.message,
+                disable_web_page_preview=True
+            )

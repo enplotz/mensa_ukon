@@ -23,7 +23,7 @@ with codecs.open('README.md', 'r', 'utf-8') as readme_f, \
           long_description=readme_f.read(),
           url='https://github.com/enplotz/mensa_ukon',
           keywords='python canteen api wrapper bot',
-          python_requires='~=3.5',
+          python_requires='>=3.10',
           packages=find_packages(exclude=['tests*']),
           py_modules=['mensa', 'bot', 'settings'],
           # TODO structure canteen data source as plugins

@@ -7,7 +7,7 @@ name = "pypi"
 python_version = "3.10"
 
 [packages]
-python-telegram-bot = "~=12.0"
+python-telegram-bot = "~=13.0"
 requests-html = "~=0.9"
 lxml = "~=4.2"
 html5lib = "~=1.0"

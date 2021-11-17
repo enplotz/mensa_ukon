@@ -14,8 +14,7 @@ def run_bot(verbosity):
     setup_logging(verbosity)
     try:
         bot = MensaBot()
-        # TODO simple plugins for different canteens
-        bot.logger.info('Running bot.')
+        bot.logger.info('Starting bot from CLI script...')
         bot.run()
     except BotError as e:
         show_exc = logging.DEBUG == Verbosity.getLoglevelForCount(verbosity)
