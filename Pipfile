@@ -9,7 +9,7 @@ python_version = "3.10"
 [packages]
 python-telegram-bot = "~=13.0"
 requests-html = "~=0.9"
-lxml = "~=4.2"
+lxml = "~=4.9"
 html5lib = "~=1.0"
 cachecontrol = ">=0.12"
 click = "~=6.7"
